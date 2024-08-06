@@ -76,10 +76,12 @@ const RecentAdditions = () => {
       <span className="text-4xl">Recent Additions</span>
       {ra.map((a, i) => {
         return (
-          <div className="flex flex-row gap-[1rem]" key={i}>
-            <span>{a.name}</span>
-            <span>by - {a.submitter}</span>
-          </div>
+          <>
+            <div className="flex flex-row gap-[1rem]" key={i}>
+              <span>{a.name}</span>
+              <span>by - {a.submitter}</span>
+            </div>
+          </>
         )
       })}
     </div>
@@ -110,7 +112,7 @@ const RecentReviews = () => {
         return (
           <div className="flex flex-row gap-[1rem]" key={i}>
             <span className="italic">{r.album}</span>
-            <span>{r.name}</span>
+            <span>"{r.name}"</span>
             <span>by - {r.reviewer}</span>
           </div>
         )

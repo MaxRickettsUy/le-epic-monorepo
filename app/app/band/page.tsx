@@ -6,7 +6,7 @@ import { NavigationMenuDemo } from "./nav";
 import { Input } from "@/components/ui/input"
 import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 
 interface Addition {
@@ -93,13 +93,21 @@ const RecentAdditions = () => {
 }
 
 const RecentUpdates = () => {
+  const router = useRouter();
+  const pathname = usePathname();
+
+  const addQueryParam = (name: string) => {
+      const params = new URLSearchParams();
+      params.set("name", name);
+      router.replace(`/band?${params.toString()}`);
+  };
   return (
     <div className="flex-1">
       <span className="text-4xl">Recent Updates</span>
       {ru.map((u, i) => {
         return (
           <div className="flex flex-row gap-[1rem]" key={i}>
-            <Link href={{ pathname: "/band", query: {name: u.name } }}>{u.name}</Link>
+            <a onClick={() => addQueryParam(u.name)}>{u.name}</a>
             <span>by - {u.submitter}</span>
           </div>
         );
@@ -126,12 +134,17 @@ const RecentReviews = () => {
 }
 
 export default function Home() {
+  const searchParams = useSearchParams();
+
+  const name = searchParams.get("name")
   return (
     <main className="py-[1rem] flex-col">
       <div className="flex flex-row gap-[1rem] px-[1rem]">
-        <Avatar>
-          <AvatarFallback>L</AvatarFallback>
-        </Avatar>
+        <Link href="/">
+          <Avatar>
+            <AvatarFallback>L</AvatarFallback>
+          </Avatar>
+        </Link>
         {/* <NavigationMenuDemo /> */}
         <div className="ml-auto flex flex-row gap-[1rem]">
           <Button>Add Band</Button>
@@ -145,9 +158,7 @@ export default function Home() {
         <Separator />
       </div>
       <div className="flex flex-col md:flex-row lg:flex-row xl:flex-row gap-[1rem] p-[1rem]">
-        <RecentAdditions />
-        <RecentUpdates />
-        <RecentReviews />
+        <span className="text-4xl">{name}</span>
       </div>
     </main>
   );

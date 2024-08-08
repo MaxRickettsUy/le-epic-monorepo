@@ -80,12 +80,10 @@ const RecentAdditions = () => {
       <span className="text-4xl">Recent Additions</span>
       {ra.map((a, i) => {
         return (
-          <>
-            <div className="flex flex-row gap-[1rem]" key={i}>
-              <span>{a.name}</span>
-              <span>by - {a.submitter}</span>
-            </div>
-          </>
+          <div className="flex flex-row" key={i}>
+            <Link className="hover:underline" href={{ pathname: "/band", query: { name: a.name } }}>{a.name}</Link>
+            <span>- {a.submitter}</span>
+          </div>
         )
       })}
     </div>
@@ -98,9 +96,9 @@ const RecentUpdates = () => {
       <span className="text-4xl">Recent Updates</span>
       {ru.map((u, i) => {
         return (
-          <div className="flex flex-row gap-[1rem]" key={i}>
-            <Link href={{ pathname: "/band", query: {name: u.name } }}>{u.name}</Link>
-            <span>by - {u.submitter}</span>
+          <div className="flex flex-row gap-[4px]" key={i}>
+            <Link className="hover:underline" href={{ pathname: "/band", query: {name: u.name } }}>{u.name}</Link>
+            <span>- {u.submitter}</span>
           </div>
         );
       })}
@@ -112,15 +110,17 @@ const RecentReviews = () => {
   return (
     <div className="flex-1">
       <span className="text-4xl">Recent Reviews</span>
-      {rr.map((r, i) => {
-        return (
-          <div className="flex flex-row gap-[1rem]" key={i}>
-            <span className="italic">{r.album}</span>
-            <span>"{r.name}"</span>
-            <span>by - {r.reviewer}</span>
-          </div>
-        )
-      })}
+      <div className="flex flex-col gap-[4px]">
+        {rr.map((r, i) => {
+          return (
+            <div className="flex flex-col md:flex-row lg:flex-row xl:flex-row gap-[8px]" key={i}>
+              <Link className="italic hover:underline" href={{ pathname: "/album", query: {name: r.album } }}>{r.album}</Link>
+              <span>|</span>
+              <span>"{r.name}" - {r.reviewer}</span>
+            </div>
+          )
+        })}
+      </div>
     </div>
   )
 }

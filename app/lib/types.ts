@@ -7,7 +7,8 @@ export interface Artist {
 
 export interface Album {
   name: string;
-  artist: Artist | Artist[];
+  // artist: Artist | Artist[];
+  artist: Artist;
   year: number;
   label: string;
   rating: number;

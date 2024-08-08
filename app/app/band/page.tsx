@@ -12,6 +12,7 @@ import { useEffect, useState } from "react";
 import { Album } from "@/lib/types";
 import { AlbumTable } from "./table";
 import { faker } from "@faker-js/faker";
+import { Breadcrumbs } from "../album/breadcrumbs";
 
 const SearchInput = () => (
   <Input type="search" placeholder="Search..." />
@@ -127,7 +128,7 @@ export default function Band() {
             />
           )}
         </div>
-        <AlbumTable albums={albums} />
+        { name && <AlbumTable band={name} albums={albums} /> }
       </div>
     </main>
   );

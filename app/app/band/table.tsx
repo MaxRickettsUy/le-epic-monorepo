@@ -14,14 +14,15 @@ import Link from "next/link";
 
 interface Props {
   albums: Album[];
+  band: string;
 }
 
-const AlbumLink = (props: { name: string }) => (
+const AlbumLink = (props: { name: string, band: string }) => (
   <Link
     className="hover:underline"
     href={{
       pathname: "/album",
-      query: { name: props.name }
+      query: { name: props.name, band: props.band }
     }}
   >
     {props.name}
@@ -43,7 +44,7 @@ export const AlbumTable =(props: Props) => {
         {props.albums.map((album) => (
           <TableRow key={album.name}>
             <TableCell className="font-medium">{album.year}</TableCell>
-            <TableCell><AlbumLink name={album.name} /></TableCell>
+            <TableCell><AlbumLink band={album.artist.name} name={album.name} /></TableCell>
             { album.reviewCount > 0 && (
               <TableCell>
                 {album.rating}% ({album.reviewCount} reviews)

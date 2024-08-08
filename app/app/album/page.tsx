@@ -12,6 +12,7 @@ import { useEffect, useState } from "react";
 import { Album } from "@/lib/types";
 import { SongsTable } from "./table";
 import { faker } from "@faker-js/faker";
+import { AlbumBreadcrumbs } from "./breadcrumbs";
 
 const SearchInput = () => (
   <Input type="search" placeholder="Search..." />
@@ -90,6 +91,7 @@ export default function Album() {
   const [album, setAlbum] = useState<Album | null>(null)
   const searchParams = useSearchParams();
   const name = searchParams.get("name")
+  const band = searchParams.get("band")
 
   useEffect(() => {
     const fetchData = async () => {
@@ -124,6 +126,7 @@ export default function Album() {
         <Separator />
       </div>
       <div className="flex flex-col gap-[1rem] p-[1rem]">
+        { band && name && <AlbumBreadcrumbs band={band} name={name} /> }
         <div className="flex flex-row">
           <div className="flex flex-col gap-[1rem]">
             <span className="text-4xl">{name}</span>

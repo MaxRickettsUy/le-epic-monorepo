@@ -1,17 +1,16 @@
-import { Album, Artist } from '@/lib/types';
+import { Album } from '@/lib/types';
 import { faker } from '@faker-js/faker';
 
 const capitalizeFirstLetter = (value: string) => {
   return value.charAt(0).toUpperCase() + value.slice(1);
 }
 
-export async function GET(req: Request) {
+export async function POST(req: Request) {
+  const data = await req.json();
+
   const album: Album = {
-      name: faker.word.words({ count: { min: 1, max: 5 }}),
-      artist: {
-        name: capitalizeFirstLetter(faker.word.noun(100)),
-        status: "active"
-      } as Artist,
+      name: data.name,
+      bandName: data.bandName,
       year: faker.number.int({ min: 1982, max: 2024 }),
       label: capitalizeFirstLetter(faker.word.noun(100)) + "Records",
       rating: faker.number.int({ min: 0, max: 100 }),

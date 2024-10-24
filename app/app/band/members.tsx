@@ -8,12 +8,12 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { Album } from "@/lib/types"
+import { Album, Member } from "@/lib/types"
 import { faker } from "@faker-js/faker";
 import Link from "next/link";
 
 interface Props {
-  albums: Album[];
+  members: Member[];
   band: string;
 }
 
@@ -29,27 +29,23 @@ const AlbumLink = (props: { name: string, band: string }) => (
   </Link>
 )
 
-export const AlbumTable =(props: Props) => {
+export const MemberTable =(props: Props) => {
   return (
     <Table>
       {/* <TableCaption>A list of your recent invoices.</TableCaption> */}
       <TableHeader>
         <TableRow>
-          <TableHead className="w-[100px]">Year</TableHead>
           <TableHead>Name</TableHead>
-          <TableHead>Rating</TableHead>
+          <TableHead>Role</TableHead>
+          <TableHead>Other Bands</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
-        {props.albums.map((album) => (
-          <TableRow key={album.name}>
-            <TableCell className="font-medium">{album.year}</TableCell>
-            <TableCell><AlbumLink band={album.artist.name} name={album.name} /></TableCell>
-            { album.reviewCount > 0 && (
-              <TableCell>
-                {album.rating}% ({album.reviewCount} reviews)
-              </TableCell>
-            )}
+        {props.members.map((member) => (
+          <TableRow key={member.name}>
+            <TableCell className="font-medium">{member.name}</TableCell>
+            <TableCell>{member.role}</TableCell>
+            <TableCell>insert other bands</TableCell>
           </TableRow>
         ))}
       </TableBody>

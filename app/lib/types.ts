@@ -1,14 +1,20 @@
 import { z } from "zod";
 
-export interface Artist {
+export interface Member {
+  name: string;
+  role: string;
+}
+
+export interface Band {
   name: string;
   status: "active" | "unknown" | "rip";
+  members: Member[],
+  discography: Album[]
 }
 
 export interface Album {
   name: string;
-  // artist: Artist | Artist[];
-  artist: Artist;
+  bandName: string;
   year: number;
   label: string;
   rating: number;

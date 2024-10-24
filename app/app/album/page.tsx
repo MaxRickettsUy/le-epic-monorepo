@@ -94,15 +94,29 @@ export default function Album() {
   const band = searchParams.get("band")
 
   useEffect(() => {
-    const fetchData = async () => {
-      const res = await fetch('/api/album');
+    const albumName = searchParams.get("name");
+    const bandName = searchParams.get("band");
+
+    const fetchData = async (param: {
+      albumName: string;
+      bandName: string;
+    }) => {
+      const res = await fetch('/api/album', {
+        method: "POST",
+        body: JSON.stringify({
+          albumName,
+          bandName
+        })
+      });
 
       return res.json();
     }
 
-    fetchData().then((res) =>{
-      setAlbum(res);
-    })
+    if (albumName !== null && bandName !== null) {
+      fetchData({ albumName, bandName }).then((res) =>{
+        setAlbum(res);
+      })
+    }
   }, [])
 
   return (

@@ -1,96 +1,56 @@
 'use client'
 
-import Image from "next/image";
 import { Button } from "@/components/ui/button";
-import { NavigationMenuDemo } from "./nav";
 import { Input } from "@/components/ui/input"
 import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { useEffect, useState } from "react";
-import { Album } from "@/lib/types";
-import { AlbumTable } from "./table";
+import { createContext, useContext, useEffect, useState } from "react";
+import { Band } from "@/lib/types";
+import { DiscogTable } from "./discog";
 import { faker } from "@faker-js/faker";
-import { Breadcrumbs } from "../album/breadcrumbs";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { MemberTable } from "./members";
+import { SimilarArtistsTable } from "./similar-artists";
+import { LinksTable } from "./links";
 
 const SearchInput = () => (
   <Input type="search" placeholder="Search..." />
 );
 
-// const RecentAdditions = () => {
-//   return (
-//     <div className="flex-1">
-//       <span className="text-4xl">Recent Additions</span>
-//       {ra.map((a, i) => {
-//         return (
-//           <div className="flex flex-row gap-[1rem]" key={i}>
-//             <span>{a.name}</span>
-//             <span>by - {a.submitter}</span>
-//           </div>
-//         )
-//       })}
-//     </div>
-//   )
-// }
+interface BandContextType {
+  band: Band | null;
+  setBand: (band: Band) => void;
+}
 
-// const RecentUpdates = () => {
-//   const router = useRouter();
-//   const pathname = usePathname();
+const BandContext = createContext<BandContextType>({
+  band: null,
+  setBand: () => {}
+});
 
-//   const addQueryParam = (name: string) => {
-//       const params = new URLSearchParams();
-//       params.set("name", name);
-//       router.replace(`/band?${params.toString()}`);
-//   };
-//   return (
-//     <div className="flex-1">
-//       <span className="text-4xl">Recent Updates</span>
-//       {ru.map((u, i) => {
-//         return (
-//           <div className="flex flex-row gap-[1rem]" key={i}>
-//             <a onClick={() => addQueryParam(u.name)}>{u.name}</a>
-//             <span>by - {u.submitter}</span>
-//           </div>
-//         );
-//       })}
-//     </div>
-//   )
-// }
-
-// const RecentReviews = () => {
-//   return (
-//     <div className="flex-1">
-//       <span className="text-4xl">Recent Reviews</span>
-//       {rr.map((r, i) => {
-//         return (
-//           <div className="flex flex-row gap-[1rem]" key={i}>
-//             <span className="italic">{r.album}</span>
-//             <span>"{r.name}"</span>
-//             <span>by - {r.reviewer}</span>
-//           </div>
-//         )
-//       })}
-//     </div>
-//   )
-// }
-
-export default function Band() {
-  const [albums, setAlbums] = useState<Album[]>([])
+const Band = () => {
+  const { band, setBand } = useContext(BandContext);
   const searchParams = useSearchParams();
-  const name = searchParams.get("name")
 
   useEffect(() => {
-    const fetchData = async () => {
-      const res = await fetch('/api/band');
+    const name = searchParams.get("name");
+
+    const fetchData = async (name: string) => {
+      const res = await fetch('/api/band', {
+        method: "POST",
+        body: JSON.stringify({ name })
+      });
 
       return res.json();
     }
 
-    fetchData().then((res) =>{
-      setAlbums(res.albums.sort((a: Album, b: Album) => a.year - b.year));
-    })
-  }, [])
+    if (name !== null) {
+      fetchData(name).then((res) =>{
+        setBand(res);
+      })
+    }
+  }, [searchParams])
 
   return (
     <main className="py-[1rem] flex-col">
@@ -112,24 +72,57 @@ export default function Band() {
       <div className="py-[1rem] w-full">
         <Separator />
       </div>
-      <div className="flex flex-col gap-[1rem] p-[1rem]">
-        <div className="flex flex-row">
-          <div className="flex flex-col gap-[1rem]">
-            <span className="text-4xl">{name}</span>
-            <span>Status: active</span>
+      {
+        band && (
+          <div className="flex flex-col gap-[1rem] p-[1rem]">
+            <div className="flex flex-row">
+              <div className="flex flex-col gap-[1rem]">
+                <span className="text-4xl">{band.name}</span>
+                <span>Status: active</span>
+              </div>
+              { band.name && (
+                <img
+                  className="ml-auto"
+                  alt={band.name}
+                  src={faker.image.urlLoremFlickr({ category: 'people' })}
+                  width={250}
+                  height={250}
+                />
+              )}
+            </div>
+            <Tabs defaultValue="discography">
+              <TabsList>
+                <TabsTrigger value="discography">Discography</TabsTrigger>
+                <TabsTrigger value="members">Members</TabsTrigger>
+                <TabsTrigger value="similar-artists">Similar Artists</TabsTrigger>
+                <TabsTrigger value="links">Links</TabsTrigger>
+              </TabsList>
+              <TabsContent className="w-full" value="discography">
+                <DiscogTable band={band.name} albums={band.discography} />
+              </TabsContent>
+              <TabsContent value="members">
+                <MemberTable band={band.name} members={band.members} />
+              </TabsContent>
+              <TabsContent value="similar-artists">
+                <SimilarArtistsTable band={band.name} albums={band.discography} />
+              </TabsContent>
+              <TabsContent value="links">
+                { band.name && <LinksTable band={band.name} albums={band.discography} /> }
+              </TabsContent>
+            </Tabs>
           </div>
-          { name && (
-            <img
-              className="ml-auto"
-              alt={name}
-              src={faker.image.urlLoremFlickr({ category: 'people' })}
-              width={250}
-              height={250}
-            />
-          )}
-        </div>
-        { name && <AlbumTable band={name} albums={albums} /> }
-      </div>
+        )
+      }
     </main>
   );
+}
+
+export default function Page() {
+  const [band, setBand] = useState<Band | null>(null);
+
+  return (
+    <BandContext.Provider value={{ band, setBand }}>
+      <Band />
+    </BandContext.Provider>
+  )
 }

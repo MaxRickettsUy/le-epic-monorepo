@@ -1,4 +1,4 @@
-import { Artist } from '@/lib/types';
+import { Band } from '@/lib/types';
 import { faker } from '@faker-js/faker';
 
 const capitalizeFirstLetter = (value: string) => {
@@ -6,12 +6,31 @@ const capitalizeFirstLetter = (value: string) => {
 }
 
 export async function GET(req: Request) {
-  const artists: Artist[] = [...new Array(10)].map((_, index) => {
+  const bands: Band[] = [...new Array(10)].map((_, index) => {
     return {
       name: capitalizeFirstLetter(faker.word.noun(100)),
-      status: "active"
+      status: "active",
+      members: [
+        {
+          name: faker.person.fullName(),
+          role: "vocals"
+        },
+        {
+          name: faker.person.fullName(),
+          role: "guitarist"
+        },
+        {
+          name: faker.person.fullName(),
+          role: "drums"
+        },
+        {
+          name: faker.person.fullName(),
+          role: "bass"
+        }
+      ],
+      discography: []
     }
   })
 
-  return Response.json({ artists });
+  return Response.json(bands);
 }

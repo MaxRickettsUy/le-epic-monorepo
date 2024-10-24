@@ -36,7 +36,7 @@ export default function Home() {
       return response.json()
     }
 
-    fetchData().then((res) => setBands(res.bands));
+    fetchData().then((res) => setBands(res));
   }, [])
 
   return (
@@ -59,7 +59,7 @@ export default function Home() {
       </div>
       <div className="flex flex-col md:flex-row lg:flex-row xl:flex-row gap-[1rem] p-[1rem]">
         <div className="flex flex-col">
-          { bands.map((b) => <BandLink name={b.name} />) }
+          { bands.map((b, i) => <BandLink key={i} name={b.name} />) }
         </div>
       </div>
     </main>

@@ -8,12 +8,12 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { Album } from "@/lib/types"
+import { Release } from "@/lib/types"
 import { faker } from "@faker-js/faker";
 import Link from "next/link";
 
 interface Props {
-  albums: Album[];
+  albums: Release[];
   band: string;
 }
 

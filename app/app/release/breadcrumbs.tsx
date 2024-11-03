@@ -12,6 +12,7 @@ import Link from "next/link";
 interface Props {
   band: string;
   name: string;
+  id: string;
 }
 
 export function AlbumBreadcrumbs(props: Props) {
@@ -22,11 +23,17 @@ export function AlbumBreadcrumbs(props: Props) {
           <BreadcrumbLink href="/">Home</BreadcrumbLink>
         </BreadcrumbItem>
         <BreadcrumbSeparator />
-        <BreadcrumbItem>
-          <Link href={{pathname: '/band', query: { name: props.band } }}>
-            <BreadcrumbLink>{props.band}</BreadcrumbLink>
+        <BreadcrumbLink asChild>
+          <Link
+            href={{
+              pathname: '/band',
+              query: {
+                name: props.band, id: props.id }
+            }}
+          >
+            {props.band}
           </Link>
-        </BreadcrumbItem>
+        </BreadcrumbLink>
         <BreadcrumbSeparator />
         <BreadcrumbItem>
           <BreadcrumbPage>{props.name}</BreadcrumbPage>

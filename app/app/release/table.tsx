@@ -8,14 +8,14 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { Album, Song } from "@/lib/types"
+import { Song, Track } from "@/lib/types"
 import { faker } from "@faker-js/faker";
 
 interface Props {
-  songs: Song[];
+  tracks: Track[];
 }
 
-export const SongsTable = (props: Props) => {
+export const TracksTable = (props: Props) => {
   return (
     <Table>
       {/* <TableCaption>A list of your recent invoices.</TableCaption> */}
@@ -27,10 +27,10 @@ export const SongsTable = (props: Props) => {
         </TableRow>
       </TableHeader>
       <TableBody>
-        {props.songs.map((song) => (
-          <TableRow key={song.name}>
-            <TableCell className="font-medium">{song.name}</TableCell>
-            <TableCell>{song.length}</TableCell>
+        { props.tracks.map((track) => (
+          <TableRow key={track.name}>
+            <TableCell className="font-medium">{track.name}</TableCell>
+            <TableCell>{track.length}</TableCell>
           </TableRow>
         ))}
       </TableBody>

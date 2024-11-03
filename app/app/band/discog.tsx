@@ -8,34 +8,30 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { Album } from "@/lib/types"
+import { Release } from "@/lib/types"
 import { faker } from "@faker-js/faker";
 import Link from "next/link";
 
 interface Props {
-  albums: Album[];
+  releases: Release[];
   band: string;
 }
 
-const AlbumLink = (props: {
-  name: string;
-  band: string;
-}) => (
+const ReleaseLink = (props: { release: Release }) => (
   <Link
     className="hover:underline"
     href={{
-      pathname: "/album",
+      pathname: "/release",
       query: {
-        name: props.name,
-        band: props.band
+        id: props.release.id
       }
     }}
   >
-    {props.name}
+    {props.release.name}
   </Link>
 )
 
-export const DiscogTable =(props: Props) => {
+export const Discography =(props: Props) => {
   return (
     <Table>
       {/* <TableCaption>A list of your recent invoices.</TableCaption> */}
@@ -47,18 +43,15 @@ export const DiscogTable =(props: Props) => {
         </TableRow>
       </TableHeader>
       <TableBody>
-        {props.albums.map((album) => (
-          <TableRow key={album.name}>
-            <TableCell className="font-medium">{album.year}</TableCell>
+        {props.releases.map((release) => (
+          <TableRow key={release.id}>
+            <TableCell className="font-medium">{release.year}</TableCell>
             <TableCell>
-              <AlbumLink
-                band={album.bandName}
-                name={album.name}
-              />
+              <ReleaseLink release={release} />
             </TableCell>
-            { album.reviewCount > 0 && (
+            { release.review_count > 0 && (
               <TableCell>
-                {album.rating}% ({album.reviewCount} reviews)
+                {release.review_avg}% ({release.review_count} reviews)
               </TableCell>
             )}
           </TableRow>

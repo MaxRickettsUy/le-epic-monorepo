@@ -8,7 +8,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { Album, Member } from "@/lib/types"
+import { Release, Member } from "@/lib/types"
 import { faker } from "@faker-js/faker";
 import Link from "next/link";
 

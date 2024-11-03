@@ -1,4 +1,4 @@
-import { Album } from '@/lib/types';
+import { Release } from '@/lib/types';
 import { faker } from '@faker-js/faker';
 
 const capitalizeFirstLetter = (value: string) => {
@@ -8,7 +8,7 @@ const capitalizeFirstLetter = (value: string) => {
 export async function POST(req: Request) {
   const data = await req.json();
 
-  const album: Album = {
+  const release: Release = {
       name: data.name,
       bandName: data.bandName,
       year: faker.number.int({ min: 1982, max: 2024 }),

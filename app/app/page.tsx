@@ -12,13 +12,17 @@ const SearchInput = () => (
   <Input type="search" placeholder="Search..." />
 );
 
-const BandLink = (props: { name: string }) => (
+const BandLink = (props: {
+  name: string;
+  id: string;
+}) => (
   <Link
     className="hover:underline"
     href={{
       pathname: "/band",
       query: {
-        name: props.name
+        name: props.name,
+        id: props.id
       }
     }}
   >
@@ -31,12 +35,16 @@ export default function Home() {
 
   useEffect(() => {
     const fetchData = async () => {
-      const response = await fetch('/api/home');
+      // const response = await fetch('/api/home');
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URI}/band/`)
 
       return response.json()
     }
 
-    fetchData().then((res) => setBands(res));
+    fetchData().then((res) => {
+      console.log(res)
+      setBands(res)
+    });
   }, [])
 
   return (
@@ -59,7 +67,7 @@ export default function Home() {
       </div>
       <div className="flex flex-col md:flex-row lg:flex-row xl:flex-row gap-[1rem] p-[1rem]">
         <div className="flex flex-col">
-          { bands.map((b, i) => <BandLink key={i} name={b.name} />) }
+          { bands.map((b, i) => <BandLink key={i} id={b.id} name={b.name} />) }
         </div>
       </div>
     </main>

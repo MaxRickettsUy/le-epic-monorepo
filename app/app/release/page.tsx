@@ -1,12 +1,7 @@
 'use client'
 
-import Image from "next/image";
-import { Button } from "@/components/ui/button";
-// import { NavigationMenuDemo } from "./nav";
-import { Input } from "@/components/ui/input"
 import { Separator } from "@/components/ui/separator";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { Release } from "@/lib/types";
@@ -14,10 +9,8 @@ import { TracksTable } from "./table";
 import { faker } from "@faker-js/faker";
 import { AlbumBreadcrumbs } from "./breadcrumbs";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-
-const SearchInput = () => (
-  <Input type="search" placeholder="Search..." />
-);
+import { Header } from "@/components/ui/header";
+import Image from "next/image";
 
 // const RecentAdditions = () => {
 //   return (
@@ -97,42 +90,24 @@ const AlbumLink = (props: {
 export default function Album() {
   const [release, setRelease] = useState<Release | null>(null)
   const searchParams = useSearchParams();
-  const name = searchParams.get("name")
 
   useEffect(() => {
     const id = Number(searchParams.get("id"));
 
     const fetchData = async (params: { id: number }) => {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URI}/release/${params.id}`);
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URI}:${process.env.NEXT_PUBLIC_API_PORT}/release/${params.id}`);
 
       return res.json();
     }
 
     if (id !== null) {
-      fetchData({ id }).then((res: Release[]) =>{
-        console.log(res)
-        setRelease(res[0]);
-      })
+      fetchData({ id }).then((res: Release[]) => setRelease(res[0]));
     }
-  }, [])
+  }, [searchParams])
 
   return (
     <main className="py-[1rem] flex-col">
-      <div className="flex flex-row gap-[1rem] px-[1rem]">
-        <Link href="/">
-          <Avatar>
-            <AvatarFallback>L</AvatarFallback>
-          </Avatar>
-        </Link>
-        {/* <NavigationMenuDemo /> */}
-        <div className="ml-auto flex flex-row gap-[1rem]">
-          <Button>Add Band</Button>
-          <SearchInput />
-        </div>
-        <Avatar>
-          <AvatarFallback>U</AvatarFallback>
-        </Avatar>
-      </div>
+      <Header />
       <div className="py-[1rem] w-full">
         <Separator />
       </div>
@@ -163,7 +138,7 @@ export default function Album() {
                 </Link>
               </div>
               { release.name && (
-                <img
+                <Image
                   className="ml-auto"
                   alt={release.name}
                   src={faker.image.urlLoremFlickr({ category: 'people' })}

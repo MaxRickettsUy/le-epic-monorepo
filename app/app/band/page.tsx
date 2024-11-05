@@ -1,23 +1,18 @@
 'use client'
 
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input"
 import { Separator } from "@/components/ui/separator";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { createContext, useContext, useEffect, useState } from "react";
-import { Band, FlaskBand, Release } from "@/lib/types";
+import { Band, Release } from "@/lib/types";
 import { Discography } from "./discog";
 import { faker } from "@faker-js/faker";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { MemberTable } from "./members";
-import { SimilarArtistsTable } from "./similar-artists";
-import { LinksTable } from "./links";
-
-const SearchInput = () => (
-  <Input type="search" placeholder="Search..." />
-);
+import { statusMap } from "@/lib/const";
+import { Pencil } from "lucide-react"
+import { Header } from "@/components/ui/header";
 
 interface BandContextType {
   band: Band | null;
@@ -34,30 +29,25 @@ const BandContext = createContext<BandContextType>({
   setBand: () => {}
 });
 
-const Band = () => {
+const BandPage = () => {
   const { band, setBand } = useContext(BandContext);
   const searchParams = useSearchParams();
 
   useEffect(() => {
-    const name = searchParams.get("name");
     const id: number = Number(searchParams.get("id"));
 
     const fetchData = async (params: { id: number }) => {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URI}/band/${params.id}`)
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URI}:${process.env.NEXT_PUBLIC_API_PORT}/band/${params.id}`)
 
       return res.json();
     }
 
-    if (id !== null && name !== null) {
+    if (id !== null) {
       fetchData({ id }).then((res: Band) => {
-        console.log(res)
-
         const band: Band = {
           ...res,
           members: [],
         }
-
-        console.log(band)
 
         setBand(band);
       })
@@ -66,21 +56,7 @@ const Band = () => {
 
   return (
     <main className="py-[1rem] flex-col">
-      <div className="flex flex-row gap-[1rem] px-[1rem]">
-        <Link href="/">
-          <Avatar>
-            <AvatarFallback>L</AvatarFallback>
-          </Avatar>
-        </Link>
-        {/* <NavigationMenuDemo /> */}
-        <div className="ml-auto flex flex-row gap-[1rem]">
-          <Button>Add Band</Button>
-          <SearchInput />
-        </div>
-        <Avatar>
-          <AvatarFallback>U</AvatarFallback>
-        </Avatar>
-      </div>
+      <Header />
       <div className="py-[1rem] w-full">
         <Separator />
       </div>
@@ -88,8 +64,15 @@ const Band = () => {
           <div className="flex flex-col gap-[1rem] p-[1rem]">
             <div className="flex flex-row">
               <div className="flex flex-col gap-[1rem]">
-                <span className="text-4xl">{band.name}</span>
-                <span>Status: active</span>
+                <div className="flex flex-row gap-[8]">
+                  <span className="text-4xl">{band.name}</span>
+                  <Link href={{ pathname: "/edit/band", query: { id: band.id }}}>
+                    <Button variant="ghost" size="icon">
+                      <Pencil />
+                    </Button>
+                  </Link>
+                </div>
+                <span>Status: {statusMap[band.status]}</span>
               </div>
               { band.name && (
                 <img
@@ -121,6 +104,16 @@ const Band = () => {
                 { band.name && <LinksTable band={band.name} albums={band.discography} /> }
               </TabsContent> */}
             </Tabs>
+            <Link
+              href={{
+                pathname: "/create/release",
+                query: { band_id: band.id }
+              }}
+            >
+              <Button className="w-[25%]">
+                Add Release
+              </Button>
+            </Link>
           </div>
         )
       }
@@ -133,7 +126,7 @@ export default function Page() {
 
   return (
     <BandContext.Provider value={{ band, setBand }}>
-      <Band />
+      <BandPage />
     </BandContext.Provider>
   )
 }

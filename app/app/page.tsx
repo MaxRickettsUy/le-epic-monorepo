@@ -1,16 +1,12 @@
 'use client'
 
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input"
 import { Separator } from "@/components/ui/separator";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { Band } from "@/lib/types";
-
-const SearchInput = () => (
-  <Input type="search" placeholder="Search..." />
-);
+import { useRouter } from "next/navigation";
+import { Header } from "@/components/ui/header";
+import { Button } from "@/components/ui/button";
 
 const BandLink = (props: {
   name: string;
@@ -20,13 +16,10 @@ const BandLink = (props: {
     className="hover:underline"
     href={{
       pathname: "/band",
-      query: {
-        name: props.name,
-        id: props.id
-      }
+      query: { id: props.id }
     }}
   >
-    {props.name}
+    <Button variant="ghost">{props.name}</Button>
   </Link>
 )
 
@@ -35,39 +28,29 @@ export default function Home() {
 
   useEffect(() => {
     const fetchData = async () => {
-      // const response = await fetch('/api/home');
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URI}/band/`)
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URI}:${process.env.NEXT_PUBLIC_API_PORT}/band/`);
 
-      return response.json()
+      return response.json();
     }
 
-    fetchData().then((res) => {
-      console.log(res)
-      setBands(res)
-    });
+    fetchData().then((res) =>  setBands(res));
   }, [])
 
   return (
     <main className="py-[1rem] flex-col">
-      <div className="flex flex-row gap-[1rem] px-[1rem]">
-        <Avatar>
-          <AvatarFallback>L</AvatarFallback>
-        </Avatar>
-        {/* <NavigationMenuDemo /> */}
-        <div className="ml-auto flex flex-row gap-[1rem]">
-          <Button>Add Band</Button>
-          <SearchInput />
-        </div>
-        <Avatar>
-          <AvatarFallback>U</AvatarFallback>
-        </Avatar>
-      </div>
+      <Header />
       <div className="py-[1rem] w-full">
         <Separator />
       </div>
-      <div className="flex flex-col md:flex-row lg:flex-row xl:flex-row gap-[1rem] p-[1rem]">
+      <div className="flex flex-col md:flex-row lg:flex-row xl:flex-row gap-[8] p-[1rem]">
         <div className="flex flex-col">
-          { bands.map((b, i) => <BandLink key={i} id={b.id} name={b.name} />) }
+          { bands.map((b, i) => (
+            <BandLink
+              key={i}
+              id={`${b.id}`}
+              name={b.name}
+            />
+          ))}
         </div>
       </div>
     </main>

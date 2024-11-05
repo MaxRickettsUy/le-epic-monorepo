@@ -1,15 +1,6 @@
-import { z } from "zod";
-
 export interface Member {
   name: string;
   role: string;
-}
-
-export interface FlaskBand {
-  band_picture: string;
-  id: number;
-  name: string;
-  status: "active";
 }
 
 export interface Band {
@@ -18,7 +9,7 @@ export interface Band {
   name: string;
   members: Member[],
   releases: Release[]
-  status: "active" | "unknown" | "inactive" | "split-up";
+  status: "active" | "unknown" | "on-hold" | "split-up";
 }
 
 // export interface Album {
@@ -59,9 +50,11 @@ export interface Release {
   band_id: string;
   band_name: string;
   band_picture: string;
+  label?: string;
   review_avg: number;
   review_count: number;
   status: "active" | "split-up" | "unknown" | 'inactive';
   tracks: Track[];
+  type: string;
   year: number;
 }

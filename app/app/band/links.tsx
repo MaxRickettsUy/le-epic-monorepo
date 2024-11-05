@@ -13,15 +13,15 @@ import { faker } from "@faker-js/faker";
 import Link from "next/link";
 
 interface Props {
-  albums: Release[];
+  releases: Release[];
   band: string;
 }
 
-const AlbumLink = (props: { name: string, band: string }) => (
+const ReleaseLink = (props: { name: string, band: string }) => (
   <Link
     className="hover:underline"
     href={{
-      pathname: "/album",
+      pathname: "/release",
       query: { name: props.name, band: props.band }
     }}
   >
@@ -41,18 +41,18 @@ export const LinksTable =(props: Props) => {
         </TableRow>
       </TableHeader>
       <TableBody>
-        {props.albums.map((album) => (
-          <TableRow key={album.name}>
-            <TableCell className="font-medium">{album.year}</TableCell>
+        {props.releases.map((release) => (
+          <TableRow key={release.name}>
+            <TableCell className="font-medium">{release.year}</TableCell>
             <TableCell>
-              <AlbumLink
-                band={album.bandName}
-                name={album.name}
+              <ReleaseLink
+                band={release.band_name}
+                name={release.name}
               />
             </TableCell>
-            { album.reviewCount > 0 && (
+            { release.review_count > 0 && (
               <TableCell>
-                {album.rating}% ({album.reviewCount} reviews)
+                {release.review_avg}% ({release.review_count} reviews)
               </TableCell>
             )}
           </TableRow>

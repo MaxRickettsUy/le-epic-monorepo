@@ -45,6 +45,17 @@ class Release(db.Model):
 
     reviews: so.WriteOnlyMapped['Review'] = so.relationship(back_populates='release')
 
+    def avg_review_score(self):
+        query = sa.select(sa.func.avg(Review.score)).select_from(
+            self.reviews.select().subquery())
+        return db.session.scalar(query)
+
+    def reviews_count(self):
+        query = sa.select(sa.func.count()).select_from(
+            self.reviews.select().subquery())
+        return db.session.scalar(query)
+
+
 class Track(db.Model):
     id: so.Mapped[int] = so.mapped_column(primary_key=True)
     name: so.Mapped[str] = so.mapped_column(sa.String(100))
@@ -67,4 +78,3 @@ class Review(db.Model):
     user_id: so.Mapped[int] = so.mapped_column(sa.ForeignKey(User.id), index=True)
 
     author: so.Mapped[User] = so.relationship(back_populates='reviews')
-

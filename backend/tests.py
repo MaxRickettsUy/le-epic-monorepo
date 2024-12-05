@@ -3,6 +3,7 @@ import unittest
 from app import create_app, db
 from app.models import Band, User, Release, Review
 from config import Config
+from flask import jsonify
 
 class TestConfig(Config):
     TESTING = True
@@ -57,11 +58,11 @@ class BandModelCase(unittest.TestCase):
             review_count = release.reviews_count()
             avg_review = release.avg_review_score()
             release_list.append({
-                'release': release.name,
+                'release': release.as_dict(),
                 'review_count': review_count,
                 'avg_review': avg_review
             })
-        print({'band': b.name, 'releases': release_list})
+        print({'band': b.as_dict(), 'releases': release_list})
 
 if __name__ == '__main__':
     unittest.main(verbosity=2)

@@ -21,6 +21,9 @@ class Band(db.Model):
 
     releases: so.WriteOnlyMapped['Release'] = so.relationship(back_populates='band')
 
+    def as_dict(self):
+        return {c.name: getattr(self, c.name) for c in self.__table__.columns}
+
 class User(db.Model):
     id: so.Mapped[int] = so.mapped_column(primary_key=True)
     username: so.Mapped[str] = so.mapped_column(sa.String(64), index=True, unique=True)
@@ -28,6 +31,9 @@ class User(db.Model):
     password_hash: so.Mapped[Optional[str]] = so.mapped_column(sa.String(256))
 
     reviews: so.WriteOnlyMapped['Review'] = so.relationship(back_populates='author')
+
+    def as_dict(self):
+        return {c.name: getattr(self, c.name) for c in self.__table__.columns}
 
 class Release(db.Model):
     id: so.Mapped[int] = so.mapped_column(primary_key=True)
@@ -61,6 +67,9 @@ class Release(db.Model):
             self.reviews.select().subquery())
         return db.session.scalar(query)
 
+    def as_dict(self):
+        return {c.name: getattr(self, c.name) for c in self.__table__.columns}
+
 
 class Track(db.Model):
     id: so.Mapped[int] = so.mapped_column(primary_key=True)
@@ -71,6 +80,9 @@ class Track(db.Model):
     release_id: so.Mapped[int] = so.mapped_column(sa.ForeignKey(Release.id), index=True)
     
     release: so.Mapped[Release] = so.relationship(back_populates='tracks')
+
+    def as_dict(self):
+        return {c.name: getattr(self, c.name) for c in self.__table__.columns}
 
 class Review(db.Model):
     id: so.Mapped[int] = so.mapped_column(primary_key=True)
@@ -84,3 +96,6 @@ class Review(db.Model):
     user_id: so.Mapped[int] = so.mapped_column(sa.ForeignKey(User.id), index=True)
 
     author: so.Mapped[User] = so.relationship(back_populates='reviews')
+
+    def as_dict(self):
+        return {c.name: getattr(self, c.name) for c in self.__table__.columns}

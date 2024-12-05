@@ -46,8 +46,9 @@ class BandModelCase(unittest.TestCase):
         rev5 = Review(score=10, review_text='very good', release=r2, author=u2)
         rev6 = Review(score=5, review_text='ok', release=r2, author=u3)
         rev7 = Review(score=1, review_text='bad :(', release=r3, author=u1)
-        rev8 = Review(score=10, review_text='very good', release=r3, author=u2)
-        db.session.add_all([rev1,rev2,rev3,rev4,rev5,rev6,rev7,rev8])
+        rev8 = Review(score=4, review_text='very good', release=r3, author=u2)
+        rev9 = Review(score=10, review_text='very good', release=r3, author=u3)
+        db.session.add_all([rev1,rev2,rev3,rev4,rev5,rev6,rev7,rev8,rev9])
         db.session.commit()
 
         releases = db.session.scalars(b.releases.select()).all()

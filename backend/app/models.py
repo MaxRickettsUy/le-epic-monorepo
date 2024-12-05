@@ -45,10 +45,16 @@ class Release(db.Model):
 
     reviews: so.WriteOnlyMapped['Review'] = so.relationship(back_populates='release')
 
+    #TODO hacky way to do this i think
+    #for some reason sa func avg docs are bad and online examples are also, find better way at some point
     def avg_review_score(self):
-        query = sa.select(sa.func.avg(Review.score)).select_from(
-            self.reviews.select().subquery())
-        return db.session.scalar(query)
+        reviews = db.session.scalars(self.reviews.select()).all()
+        review_count = len(reviews)
+        review_scores = []
+        for review in reviews:
+            review_scores.append(review.score)
+        avg_review = sum(review_scores) / review_count
+        return avg_review
 
     def reviews_count(self):
         query = sa.select(sa.func.count()).select_from(

@@ -74,6 +74,7 @@ class Release(db.Model):
 class Track(db.Model):
     id: so.Mapped[int] = so.mapped_column(primary_key=True)
     name: so.Mapped[str] = so.mapped_column(sa.String(100))
+    track_number: so.Mapped[int] = so.mapped_column(sa.Integer())
     length: so.Mapped[Optional[int]] = so.mapped_column(sa.Integer())
     lyrics: so.Mapped[Optional[str]] = so.mapped_column(sa.String(256))
 

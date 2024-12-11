@@ -3,7 +3,8 @@ import unittest
 from app import create_app, db
 from app.models import Band, User, Release, Review
 from config import Config
-from flask import jsonify
+from flask import jsonify,url_for
+import sqlalchemy as sa
 
 class TestConfig(Config):
     TESTING = True
@@ -63,6 +64,28 @@ class BandModelCase(unittest.TestCase):
                 'avg_review': avg_review
             })
         print({'band': b.as_dict(), 'releases': release_list})
+
+    def test_get_all_bands(self):
+        b1 = Band(name='test band 1', status='active', band_picture='test_band_pic_url1.png')
+        b2 = Band(name='test band 2', status='active', band_picture='test_band_pic_url2.png')
+        b3 = Band(name='test band 3', status='active', band_picture='test_band_pic_url3.png')
+        b4 = Band(name='test band 4', status='active', band_picture='test_band_pic_url4.png')
+        b5 = Band(name='test band 5', status='active', band_picture='test_band_pic_url5.png')
+        b6 = Band(name='test band 6', status='active', band_picture='test_band_pic_url6.png')
+        b7 = Band(name='test band 7', status='active', band_picture='test_band_pic_url7.png')
+        b8 = Band(name='test band 8', status='active', band_picture='test_band_pic_url8.png')
+        b9 = Band(name='test band 9', status='active', band_picture='test_band_pic_url9.png')
+        db.session.add_all([b1,b2,b3,b4,b5,b6,b7,b8,b9])
+        db.session.commit()
+
+        query = sa.select(Band)
+        bands = db.paginate(query, page=1, per_page=3, error_out=False)
+        next_url = url_for('band.index', page=bands.next_num) if bands.has_next else None
+        prev_url = url_for('band.index', page=bands.prev_num) if bands.has_prev else None
+        band_list = []
+        for band in bands.items:
+            band_list.append(band.as_dict())
+        print({'bands': band_list, 'next': next_url, 'prev': prev_url})
 
 if __name__ == '__main__':
     unittest.main(verbosity=2)

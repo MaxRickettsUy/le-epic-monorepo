@@ -1,12 +1,13 @@
 from flask import current_app, url_for, request, redirect, flash
 import sqlalchemy as sa
 from app import db
-from app.models import User
-from app.user import bp
+from app.models import Track, Release
+from app.track import bp
 import json
 
-#TODO build this out based on the tutorial
-#TODO update with user code
+#TODO CRUD review stuff.. get, update, delete
+#TODO very future... get all by filter?
+#TODO bulk add tracks
 
 @bp.route('/', methods=['POST',])
 def create():

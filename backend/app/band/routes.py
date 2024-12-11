@@ -17,7 +17,7 @@ def get_all():
     prev_url = url_for('band.index', page=bands.prev_num) if bands.has_prev else None
     return {'bands': bands, 'next': next_url, 'prev': prev_url}
 
-@bp.route('/', methods=('POST,'))
+@bp.route('/', methods=['POST',])
 def create():
     name = request.form['name']
     status = request.form['status']

@@ -22,6 +22,15 @@ def create_app(config_class=Config):
 
     from app.user import bp as user_bp
     app.register_blueprint(user_bp)
+
+    from app.release import bp as release_bp
+    app.register_blueprint(release_bp)
+
+    from app.review import bp as review_bp
+    app.register_blueprint(review_bp)
+
+    from app.track import bp as track_bp
+    app.register_blueprint(track_bp)
     
     return app
 

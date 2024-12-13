@@ -8,10 +8,10 @@ import json
 #TODO CRUD release stuff.. get, update, delete
 #TODO very future... get all by filter?
 
-@bp.route('/', methods=['POST',])
+@bp.route('/new', methods=['POST',])
 def create():
-    #TODO can this be sent from the frontend?
-    band = db.first_or_404(sa.select(Band).where(Band.id == id))
+    band_id = request.args.get('band', 0, type=int)
+    band = db.first_or_404(sa.select(Band).where(Band.id == band_id))
 
     name = request.form['name']
     length = request.form['length']

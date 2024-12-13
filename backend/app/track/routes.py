@@ -9,10 +9,10 @@ import json
 #TODO very future... get all by filter?
 #TODO bulk add tracks
 
-@bp.route('/', methods=['POST',])
+@bp.route('/new', methods=['POST',])
 def create():
-    #TODO can this be sent from the frontend?
-    release = db.first_or_404(sa.select(Release).where(Release.id == id))
+    release_id = request.args.get('release', 0, type=int)
+    release = db.first_or_404(sa.select(Release).where(Release.id == release_id))
 
     name = request.form['name']
     track_number = request.form['track_number']

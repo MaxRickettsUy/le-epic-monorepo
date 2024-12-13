@@ -80,12 +80,12 @@ class BandModelCase(unittest.TestCase):
 
         query = sa.select(Band)
         bands = db.paginate(query, page=1, per_page=3, error_out=False)
-        next_url = url_for('band.index', page=bands.next_num) if bands.has_next else None
-        prev_url = url_for('band.index', page=bands.prev_num) if bands.has_prev else None
+        #next_url = url_for('band.index', page=bands.next_num) if bands.has_next else None
+        #prev_url = url_for('band.index', page=bands.prev_num) if bands.has_prev else None
         band_list = []
         for band in bands.items:
             band_list.append(band.as_dict())
-        print({'bands': band_list, 'next': next_url, 'prev': prev_url})
+        print({'bands': band_list})
 
 if __name__ == '__main__':
     unittest.main(verbosity=2)

@@ -8,10 +8,10 @@ import json
 #TODO CRUD review stuff.. get, update, delete
 #TODO very future... get all by filter?
 
-@bp.route('/', methods=['POST',])
+@bp.route('/new', methods=['POST',])
 def create():
-    #TODO can this be sent from the frontend?
-    release = db.first_or_404(sa.select(Release).where(Release.id == id))
+    release_id = request.args.get('release', 0, type=int)
+    release = db.first_or_404(sa.select(Release).where(Release.id == release_id))
 
     #TODO update this with code that works
     #TODO should be login code that stores user info when they log in

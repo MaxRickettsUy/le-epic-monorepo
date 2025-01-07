@@ -1,4 +1,4 @@
-from flask import current_app, url_for, request, redirect, flash
+from flask import current_app, url_for, request, redirect, flash, jsonify
 import sqlalchemy as sa
 from app import db
 from app.models import Band, Release
@@ -12,21 +12,29 @@ import json
 def get_all():
     page = request.args.get('page', 1, type=int)
     query = sa.select(Band)
-    bands = db.paginate(query, page=page, per_page=current_app.config['POSTS_PER_PAGE'], error_out=False)
-    next_url = url_for('band.index', page=bands.next_num) if bands.has_next else None
-    prev_url = url_for('band.index', page=bands.prev_num) if bands.has_prev else None
-    return {'bands': bands, 'next': next_url, 'prev': prev_url}
+    bands = db.paginate(query, page=page, per_page=current_app.config['BANDS_PER_PAGE'], error_out=False)
+    next_url = url_for('band.get_all', page=bands.next_num) if bands.has_next else None
+    prev_url = url_for('band.get_all', page=bands.prev_num) if bands.has_prev else None
+
+    #TODO i dont like this but i think this is how it has to be bc im not passing response to render_template...
+    band_list = []
+    for band in bands.items:
+        band_list.append(band.as_dict())
+    return jsonify({'bands': band_list, 'next': next_url, 'prev': prev_url})
 
 @bp.route('/new', methods=['POST',])
 def create():
-    name = request.form['name']
-    status = request.form['status']
-    band_picture = request.form['band_picture']
+    json_data = request.get_json()
+    name = json_data['name']
+    status = json_data['status']
+    band_picture = json_data['band_picture']
 
     band = Band(name=name,status=status,band_picture=band_picture)
     db.session.add(band)
     db.session.commit()
-    return redirect(url_for('band.index'))
+
+    #TODO should create just return status code?
+    return 'band created'
 
 @bp.route('/<id>', methods=['GET',])
 def get(id):
@@ -41,23 +49,24 @@ def get(id):
             'review_count': review_count,
             'avg_review': avg_review
         })
-    return {'band': band.as_dict(), 'releases': release_list}
+    return jsonify({'band': band.as_dict(), 'releases': release_list})
 
 @bp.route('/<id>/update', methods=['POST',])
 def update(id):
     band = db.first_or_404(sa.select(Band).where(Band.id == id))
-    band.name = request.form['name']
-    band.status = request.form['status']
-    band.band_picture = request.form['band_picture']
+    json_data = request.get_json()
+    band.name = json_data['name']
+    band.status = json_data['status']
+    band.band_picture = json_data['band_picture']
     db.session.commit()
-    return redirect(url_for('band.index'))
+    return 'band updated'
 
 @bp.route('/<id>/delete', methods=['DELETE',])
 def delete(id):
     band = db.first_or_404(sa.select(Band).where(Band.id == id))
     db.session.delete(band)
     db.session.commit()
-    return redirect(url_for('band.index'))
+    return 'band deleted'
 
 
 

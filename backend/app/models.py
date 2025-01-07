@@ -19,7 +19,7 @@ class Band(db.Model):
     status: so.Mapped[str] = so.mapped_column(sa.String(25))
     band_picture: so.Mapped[Optional[str]] = so.mapped_column(sa.String(150))
 
-    releases: so.WriteOnlyMapped['Release'] = so.relationship(back_populates='band')
+    releases: so.WriteOnlyMapped['Release'] = so.relationship(back_populates='band', passive_deletes=True)
 
     def as_dict(self):
         return {c.name: getattr(self, c.name) for c in self.__table__.columns}

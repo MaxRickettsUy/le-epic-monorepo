@@ -33,7 +33,7 @@ def create():
     db.session.add(band)
     db.session.commit()
 
-    #TODO should create just return status code?
+    #TODO what return on successful create?
     return 'band created'
 
 @bp.route('/<id>', methods=['GET',])
@@ -59,6 +59,7 @@ def update(id):
     band.status = json_data['status']
     band.band_picture = json_data['band_picture']
     db.session.commit()
+    #TODO what return on successful update?
     return 'band updated'
 
 @bp.route('/<id>/delete', methods=['DELETE',])
@@ -66,6 +67,7 @@ def delete(id):
     band = db.first_or_404(sa.select(Band).where(Band.id == id))
     db.session.delete(band)
     db.session.commit()
+    #TODO what return on successful delete?
     return 'band deleted'
 
 

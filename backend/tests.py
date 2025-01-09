@@ -188,14 +188,101 @@ class BandModelCase(unittest.TestCase):
         test_band = db.first_or_404(sa.select(Band).where(Band.name == 'test band 1'))
         assert test_band.as_dict()['name'] == 'test band 1'
 
-        updated_band = Band(name='test band 1', status='inactive', band_picture='test_band_pic_url1.png')
-
         response = self.app.test_client().delete('/band/' + str(test_band.as_dict()['id']) + '/delete')
         assert response.status_code == 200
 
         test_band = db.session.scalar(sa.select(Band).where(Band.name == 'test band 1'))
         assert test_band is None
 
+class ReleaseModelCase(unittest.TestCase):
+
+    def setUp(self):
+        self.app = create_app(TestConfig)
+        self.app_context = self.app.app_context()
+        self.app_context.push()
+        db.create_all()
+
+    def tearDown(self):
+        db.session.remove()
+        db.drop_all()
+        self.app_context.pop()
+
+    def test_get_release_endpoint(self):
+        b = Band(name='test band', status='active', band_picture='test_band_pic_url.png')
+        db.session.add(b)
+        db.session.commit()
+
+        r1 = Release(name='release 1', length=123, art='release_1_art.png', release_type='LP', band=b)
+        r2 = Release(name='release 2', length=123, art='release_2_art.png', release_type='EP', band=b)
+        r3 = Release(name='release 3', length=123, art='release_3_art.png', release_type='LP', band=b)
+        db.session.add_all([r1,r2,r3])
+        db.session.commit()
+
+        test_release = db.first_or_404(sa.select(Release).where(Release.name == 'release 1'))
+        assert test_release.as_dict()['name'] == 'release 1'
+
+        print('hey bro')
+        print(test_release.as_dict())
+        response = self.app.test_client().get('/release/' + str(test_release.as_dict()['id']))
+        release_response = json.loads(response.data.decode('utf-8')).get('release')
+
+        assert response.status_code == 200
+        assert release_response['name'] == 'release 1'
+    
+    def test_create_release_endpoint(self):
+        band = Band(name='test band', status='active', band_picture='test_band_pic_url.png')
+        db.session.add(band)
+        db.session.commit()
+
+        r1 = Release(name='release 1', length=123, art='release_1_art.png', release_type='LP', band=band)
+
+        test_band = db.first_or_404(sa.select(Band).where(Band.name == 'test band'))
+        assert test_band.as_dict()['name'] == 'test band'
+
+        response = self.app.test_client().post('/release/new?band=' + str(test_band.as_dict()['id']), json=r1.as_dict())
+        assert response.status_code == 200
+
+        test_release = db.first_or_404(sa.select(Release).where(Release.name == 'release 1'))
+        assert test_release.as_dict()['name'] == 'release 1'
+
+    def test_update_band_endpoint(self):
+        band = Band(name='test band 1', status='active', band_picture='test_band_pic_url1.png')
+        db.session.add(band)
+        db.session.commit()
+
+        r1 = Release(name='release 1', length=123, art='release_1_art.png', release_type='LP', band=band)
+        db.session.add(r1)
+        db.session.commit()
+
+        test_release = db.first_or_404(sa.select(Release).where(Release.name == 'release 1'))
+        assert test_release.as_dict()['name'] == 'release 1'
+
+        updated_release = Release(name='release 1', length=123, art='release_1_art.png', release_type='demo', band=band)
+
+        response = self.app.test_client().post('/release/' + str(test_release.as_dict()['id']) + '/update', json=updated_release.as_dict())
+        assert response.status_code == 200
+
+        test_release = db.first_or_404(sa.select(Release).where(Release.name == 'release 1'))
+        assert test_release.as_dict()['release_type'] == 'demo'
+
+    def test_delete_release_endpoint(self):
+        band = Band(name='test band 1', status='active', band_picture='test_band_pic_url1.png')
+        db.session.add(band)
+        db.session.commit()
+
+        r1 = Release(name='release 1', length=123, art='release_1_art.png', release_type='LP', band=band)
+        db.session.add(r1)
+        db.session.commit()
+
+        test_release = db.first_or_404(sa.select(Release).where(Release.name == 'release 1'))
+        assert test_release.as_dict()['name'] == 'release 1'
+
+        response = self.app.test_client().delete('/release/' + str(test_release.as_dict()['id']) + '/delete')
+        assert response.status_code == 200
+
+        test_release = db.session.scalar(sa.select(Release).where(Release.name == 'release 1'))
+        assert test_release is None
+    
 
 
 

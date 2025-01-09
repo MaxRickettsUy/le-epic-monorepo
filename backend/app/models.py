@@ -47,9 +47,9 @@ class Release(db.Model):
 
     band: so.Mapped[Band] = so.relationship(back_populates='releases')
 
-    tracks: so.WriteOnlyMapped['Track'] = so.relationship(back_populates='release')
+    tracks: so.WriteOnlyMapped['Track'] = so.relationship(back_populates='release', passive_deletes=True)
 
-    reviews: so.WriteOnlyMapped['Review'] = so.relationship(back_populates='release')
+    reviews: so.WriteOnlyMapped['Review'] = so.relationship(back_populates='release', passive_deletes=True)
 
     #TODO hacky way to do this i think
     #for some reason sa func avg docs are bad and online examples are also, find better way at some point

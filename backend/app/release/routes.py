@@ -25,9 +25,7 @@ def create():
 
 @bp.route('/<id>', methods=['GET',])
 def get(id):
-    print('getting a release...')
     release = db.first_or_404(sa.select(Release).where(Release.id == id))
-    print(release.as_dict())
     return jsonify({'release': release.as_dict()})
 
 @bp.route('/<id>/update', methods=['POST',])

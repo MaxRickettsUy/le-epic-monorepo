@@ -30,7 +30,7 @@ class User(db.Model):
     email: so.Mapped[str] = so.mapped_column(sa.String(120), index=True, unique=True)
     password_hash: so.Mapped[Optional[str]] = so.mapped_column(sa.String(256))
 
-    reviews: so.WriteOnlyMapped['Review'] = so.relationship(back_populates='author')
+    reviews: so.WriteOnlyMapped['Review'] = so.relationship(back_populates='author', passive_deletes=True)
 
     def as_dict(self):
         return {c.name: getattr(self, c.name) for c in self.__table__.columns}

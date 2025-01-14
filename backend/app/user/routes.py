@@ -1,49 +1,51 @@
-from flask import current_app, url_for, request, redirect, flash
+from flask import current_app, url_for, request, redirect, flash, jsonify
 import sqlalchemy as sa
 from app import db
 from app.models import User
 from app.user import bp
 import json
 
-#TODO build this out based on the tutorial
-#TODO update with user code
+#TODO build out actual auth endpoints (which i think will all live in auth endpoint folder but wanted to make a note here)
 
-@bp.route('/', methods=['POST',])
+#TODO create may get moved to auth? or might invoke something from auth idk
+#just have to do some sort of pass hashing when a user is created
+@bp.route('/new', methods=['POST',])
 def create():
-    #TODO can this be sent from the frontend?
-    release = db.first_or_404(sa.select(Release).where(Release.id == id))
+    json_data = request.get_json()
+    username = json_data['username']
+    email = json_data['email']
+    password_hash = json_data['password_hash']
 
-    name = request.form['name']
-    track_number = request.form['track_number']
-    length = request.form['length']
-    lyrics = request.form['lyrics']
+    #TODO some step here to hash the password
 
-    track = Track(name=name,track_number=track_number,length=length,lyrics=lyrics,release=release)
-    db.session.add(track)
+    user = User(username=username,email=email,password_hash=password_hash)
+    db.session.add(user)
     db.session.commit()
-    #TODO on successful track creation it should return user back to the release that owns the track?
-    return redirect(url_for('release.index'))
+
+    return 'user created'
 
 @bp.route('/<id>', methods=['GET',])
 def get(id):
-    track = db.first_or_404(sa.select(Track).where(Track.id == id))
-    return {'track': track.as_dict()}
+    user = db.first_or_404(sa.select(User).where(User.id == id))
+    return jsonify({'user': user.as_dict()})
 
+#TODO account for user pass update, need to make sure re hash occurs so no plain text storage
 @bp.route('/<id>/update', methods=['POST',])
 def update(id):
-    track = db.first_or_404(sa.select(Track).where(Track.id == id))
-    track.name = request.form['score']
-    track.track_number = request.form['track_number']
-    track.length = request.form['length']
-    track.lyrics = request.form['lyrics']
+    user = db.first_or_404(sa.select(User).where(User.id == id))
+    json_data = request.get_json()
+    user.username = json_data['username']
+    user.email = json_data['email']
+    if json_data['password_hash'] is not None:
+        #hash the password
+        password_hash = 'function that returns a hashed pass'
+        user.password_hash = password_hash
     db.session.commit()
-    return redirect(url_for('track.index'))
+    return 'user updated'
 
 @bp.route('/<id>/delete', methods=['DELETE',])
 def delete(id):
-    track = db.first_or_404(sa.select(Track).where(Track.id == id))
-    db.session.delete(track)
+    user = db.first_or_404(sa.select(User).where(User.id == id))
+    db.session.delete(user)
     db.session.commit()
-    #TODO when we delete a track, we should redirect back to the release it belonged to
-    #TODO talk about this design and make sure it sounds good
-    return redirect(url_for('release.index'))
+    return 'user deleted'

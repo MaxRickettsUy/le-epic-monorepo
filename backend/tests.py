@@ -528,6 +528,72 @@ class TrackModelCase(unittest.TestCase):
 
         test_track = db.session.scalar(sa.select(Track).where(Track.name == 'test track'))
         assert test_track is None
+
+class UserModelCase(unittest.TestCase):
+
+    def setUp(self):
+        self.app = create_app(TestConfig)
+        self.app_context = self.app.app_context()
+        self.app_context.push()
+        db.create_all()
+
+    def tearDown(self):
+        db.session.remove()
+        db.drop_all()
+        self.app_context.pop()
+
+    def test_get_user_endpoint(self):
+        u = User(username='test user', email='testuser@gmail.com', password_hash='testuseriscool')
+        db.session.add(u)
+        db.session.commit()
+
+        test_user = db.first_or_404(sa.select(User).where(User.username == 'test user'))
+        assert test_user.as_dict()['username'] == 'test user'
+
+        response = self.app.test_client().get('/user/' + str(test_user.as_dict()['id']))
+        user_response = json.loads(response.data.decode('utf-8')).get('user')
+
+        assert response.status_code == 200
+        assert user_response['username'] == 'test user'
+    
+    def test_create_user_endpoint(self):
+        user = User(username='test user', email='testuser@gmail.com', password_hash='testuseriscool')
+
+        response = self.app.test_client().post('/user/new', json=user.as_dict())
+        assert response.status_code == 200
+
+        test_user = db.first_or_404(sa.select(User).where(User.username == 'test user'))
+        assert test_user.as_dict()['username'] == 'test user'
+
+    def test_update_user_endpoint(self):
+        u = User(username='test user', email='testuser@gmail.com', password_hash='testuseriscool')
+        db.session.add(u)
+        db.session.commit()
+
+        test_user = db.first_or_404(sa.select(User).where(User.username == 'test user'))
+        assert test_user.as_dict()['username'] == 'test user'
+
+        updated_user = User(username='test user 123', email='testuser@gmail.com', password_hash='testuseriscool')
+
+        response = self.app.test_client().post('/user/' + str(test_user.as_dict()['id']) + '/update', json=updated_user.as_dict())
+        assert response.status_code == 200
+
+        test_user = db.first_or_404(sa.select(User).where(User.username == 'test user 123'))
+        assert test_user.as_dict()['username'] == 'test user 123'
+
+    def test_delete_user_endpoint(self):
+        u = User(username='test user', email='testuser@gmail.com', password_hash='testuseriscool')
+        db.session.add(u)
+        db.session.commit()
+
+        test_user = db.first_or_404(sa.select(User).where(User.username == 'test user'))
+        assert test_user.as_dict()['username'] == 'test user'
+
+        response = self.app.test_client().delete('/user/' + str(test_user.as_dict()['id']) + '/delete')
+        assert response.status_code == 200
+
+        test_user = db.session.scalar(sa.select(User).where(User.username == 'test user'))
+        assert test_user is None
     
 if __name__ == '__main__':
     unittest.main(verbosity=2)

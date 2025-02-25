@@ -1,0 +1,20 @@
+services:
+  mysql:
+    container_name: mysql
+    image: mysql:latest
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: example
+    volumes:
+      - ./mysql-test-data:/var/lib/mysql #stores data on shutdown to ./mysql-test-data on your host
+
+  hc-archives-back:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    depends_on:
+      - mysql
+    environment:
+      - DATABASE_URL=mysql://hc-archives-back:example@mysql/hc-archives-back
+    ports:
+      - "8000:5000"

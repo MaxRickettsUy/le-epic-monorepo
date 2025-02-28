@@ -1,20 +1,21 @@
+version: '3.1'
 services:
   mysql:
-    container_name: mysql
-    image: mysql:latest
+    image: mysql
     restart: always
     environment:
-      MYSQL_ROOT_PASSWORD: example
-    volumes:
-      - ./mysql-test-data:/var/lib/mysql #stores data on shutdown to ./mysql-test-data on your host
-
-  hc-archives-back:
+      - MYSQL_ROOT_PASSWORD=example
+      - MYSQL_DATABASE=hc_archives_back
+      - MYSQL_USER=hc_archives_back
+      - MYSQL_PASSWORD=example
+      
+  hc_archives_back:
     build:
       context: .
       dockerfile: Dockerfile
     depends_on:
       - mysql
     environment:
-      - DATABASE_URL=mysql://hc-archives-back:example@mysql/hc-archives-back
+      - DATABASE_URL=mysql+pymysql://root:example@mysql/hc_archives_back
     ports:
       - "8000:5000"

@@ -8,6 +8,7 @@ import json
 #TODO very future... get all by filter?
 
 @bp.route('/new', methods=['POST',])
+@login_required
 def create():
     band_id = request.args.get('band', 0, type=int)
     band = db.first_or_404(sa.select(Band).where(Band.id == band_id))
@@ -29,6 +30,7 @@ def get(id):
     return jsonify({'release': release.as_dict()})
 
 @bp.route('/<id>/update', methods=['POST',])
+@login_required
 def update(id):
     release = db.first_or_404(sa.select(Release).where(Release.id == id))
     json_data = request.get_json()
@@ -40,6 +42,7 @@ def update(id):
     return 'release update successful'
 
 @bp.route('/<id>/delete', methods=['DELETE',])
+@login_required
 def delete(id):
     release = db.first_or_404(sa.select(Release).where(Release.id == id))
     db.session.delete(release)

@@ -23,6 +23,7 @@ def get_all():
     return jsonify({'bands': band_list, 'next': next_url, 'prev': prev_url})
 
 @bp.route('/new', methods=['POST',])
+@login_required
 def create():
     json_data = request.get_json()
     name = json_data['name']
@@ -52,6 +53,7 @@ def get(id):
     return jsonify({'band': band.as_dict(), 'releases': release_list})
 
 @bp.route('/<id>/update', methods=['POST',])
+@login_required
 def update(id):
     band = db.first_or_404(sa.select(Band).where(Band.id == id))
     json_data = request.get_json()
@@ -63,6 +65,7 @@ def update(id):
     return 'band updated'
 
 @bp.route('/<id>/delete', methods=['DELETE',])
+@login_required
 def delete(id):
     band = db.first_or_404(sa.select(Band).where(Band.id == id))
     db.session.delete(band)

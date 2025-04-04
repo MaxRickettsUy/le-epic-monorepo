@@ -35,6 +35,9 @@ def create_app(config_class=Config):
 
     from app.track import bp as track_bp
     app.register_blueprint(track_bp)
+
+    from app.tokens import bp as tokens_bp
+    app.register_blueprint(tokens_bp)
     
     return app
 

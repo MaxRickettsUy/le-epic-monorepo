@@ -1,10 +1,11 @@
-from flask import current_app, url_for, request, redirect, flash, jsonify
+from flask import current_app, url_for, request, redirect, flash, jsonify, abort
 import sqlalchemy as sa
 from app import db
 from app.models import User
 from app.user import bp
 import json
 from flask_login import current_user, login_user, logout_user
+from app.auth import token_auth
 
 #TODO build out actual auth endpoints (which i think will all live in auth endpoint folder but wanted to make a note here)
 @bp.route('/login', methods=['GET', 'POST'])
@@ -50,14 +51,14 @@ def create():
     return 'user created'
 
 @bp.route('/<id>', methods=['GET',])
-@login_required
+@token_auth.login_required
 def get(id):
     user = db.first_or_404(sa.select(User).where(User.id == id))
     return jsonify({'user': user.as_dict()})
 
 #TODO account for user pass update, need to make sure re hash occurs so no plain text storage
 @bp.route('/<id>/update', methods=['POST',])
-@login_required
+@token_auth.login_required
 def update(id):
     user = db.first_or_404(sa.select(User).where(User.id == id))
     json_data = request.get_json()
@@ -71,8 +72,10 @@ def update(id):
     return 'user updated'
 
 @bp.route('/<id>/delete', methods=['DELETE',])
-@login_required
+@token_auth.login_required
 def delete(id):
+    if token_auth.current_user().id != id:
+        abort(403)
     user = db.first_or_404(sa.select(User).where(User.id == id))
     db.session.delete(user)
     db.session.commit()

@@ -75,7 +75,7 @@ export default function Page() {
     const submitBand = async (params: {
       band: Band
     }) => {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URI}:${process.env.NEXT_PUBLIC_API_PORT}/band/create`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URI}:${process.env.NEXT_PUBLIC_API_PORT}/band/new`, {
         method: "POST",
         body: JSON.stringify(params.band),
         headers: {

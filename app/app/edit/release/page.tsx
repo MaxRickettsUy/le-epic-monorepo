@@ -93,23 +93,26 @@ export default function Page() {
   }
 
   const handleSubmit = (release: Release) => {
-    // const submitBand = async (params: {
-    //   release: Release
-    // }) => {
-    //   const response = await fetch(`${process.env.NEXT_PUBLIC_API_URI}:${process.env.NEXT_PUBLIC_API_PORT}/band/create`, {
-    //     method: "POST",
-    //     body: JSON.stringify(params.release),
-    //     headers: {
-    //       "Content-Type": "application/json"
-    //     }
-    //   })
+    console.log(release)
 
-    //   return response.json();
-    // }
+    const submitBand = async (params: {
+      release: Release
+    }) => {
 
-    // submitBand({ release }).then((res) => {
-    //   console.log(res)
-    // })
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URI}:${process.env.NEXT_PUBLIC_API_PORT}/band/create`, {
+        method: "POST",
+        body: JSON.stringify(params.release),
+        headers: {
+          "Content-Type": "application/json"
+        }
+      })
+
+      return response.json();
+    }
+
+    submitBand({ release }).then((res) => {
+      console.log(res)
+    })
   }
 
   const submitDisabled = useMemo(() => {
@@ -123,6 +126,8 @@ export default function Page() {
 
     return disabled;
   }, [releaseForm]);
+
+  console.log(releaseForm)
 
   return (
     <main className="py-[1rem] flex-col">

@@ -33,8 +33,10 @@ export default function Home() {
       return response.json();
     }
 
-    fetchData().then((res) =>  setBands(res));
+    fetchData().then((res) => setBands(res.bands));
   }, [])
+
+  console.log(bands)
 
   return (
     <main className="py-[1rem] flex-col">
@@ -44,7 +46,7 @@ export default function Home() {
       </div>
       <div className="flex flex-col md:flex-row lg:flex-row xl:flex-row gap-[8] p-[1rem]">
         <div className="flex flex-col">
-          { bands.map((b, i) => (
+          { bands.length > 0 && bands.map((b, i) => (
             <BandLink
               key={i}
               id={`${b.id}`}

@@ -111,7 +111,7 @@ export default function Album() {
       <div className="py-[1rem] w-full">
         <Separator />
       </div>
-      <div className="flex flex-col gap-[1rem] p-[1rem]">
+      <div className="flex flex-col md:flex-row lg:flex-row xl:flex-row gap-[1rem] p-[1rem]">
         { release && (
           <AlbumBreadcrumbs
             band={release?.band_name}

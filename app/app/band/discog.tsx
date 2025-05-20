@@ -31,7 +31,7 @@ const ReleaseLink = (props: { release: Release }) => (
   </Link>
 )
 
-export const Discography =(props: Props) => {
+export const DiscographyTable = (props: Props) => {
   return (
     <Table>
       {/* <TableCaption>A list of your recent invoices.</TableCaption> */}
@@ -66,3 +66,9 @@ export const Discography =(props: Props) => {
     </Table>
   )
 }
+
+export const DiscographyCards = () => (
+  <div>
+
+  </div>
+)

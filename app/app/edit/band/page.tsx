@@ -130,6 +130,8 @@ export default function Page() {
     return disabled;
   }, [bandForm]);
 
+  console.log(bandForm.id)
+
   return (
     <main className="py-[1rem] flex-col">
       <Header />

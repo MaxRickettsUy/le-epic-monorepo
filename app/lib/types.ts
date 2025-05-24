@@ -7,9 +7,12 @@ export interface Band {
   band_picture: string;
   id: number;
   name: string;
+  country: string;
+  location: string;
   members: Member[],
   releases: Release[]
   status: "active" | "unknown" | "on-hold" | "split-up";
+  label: string;
 }
 
 // export interface Album {
@@ -45,16 +48,16 @@ export interface Track {
 }
 
 export interface Release {
-  id: number;
-  name: string;
+  art: string;
+  band: Band;
   band_id: string;
-  band_name: string;
-  band_picture: string;
+  id: number;
   label?: string;
-  review_avg: number;
+  length: number;
+  name: string;
+  release_type: string;
+  avg_review: number;
   review_count: number;
-  status: "active" | "split-up" | "unknown" | 'inactive';
-  tracks: Track[];
   type: string;
   year: number;
 }

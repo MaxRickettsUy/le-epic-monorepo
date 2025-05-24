@@ -91,6 +91,8 @@ export default function Album() {
   const [release, setRelease] = useState<Release | null>(null)
   const searchParams = useSearchParams();
 
+  console.log(release)
+
   useEffect(() => {
     const id = Number(searchParams.get("id"));
 
@@ -101,7 +103,7 @@ export default function Album() {
     }
 
     if (id !== null) {
-      fetchData({ id }).then((res: Release[]) => setRelease(res[0]));
+      fetchData({ id }).then((res) => setRelease(res));
     }
   }, [searchParams])
 
@@ -114,7 +116,7 @@ export default function Album() {
       <div className="flex flex-col md:flex-row lg:flex-row xl:flex-row gap-[1rem] p-[1rem]">
         { release && (
           <AlbumBreadcrumbs
-            band={release?.band_name}
+            band={release?.band.name}
             name={release?.name}
             id={release.band_id}
           />
@@ -129,12 +131,11 @@ export default function Album() {
                   href={{
                     pathname: '/band',
                     query: {
-                      name: release.band_name,
                       id: release.band_id
                     }
                   }}
                 >
-                  {release.band_name}
+                  {release.band.name}
                 </Link>
               </div>
               { release.name && (

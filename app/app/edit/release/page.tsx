@@ -93,8 +93,6 @@ export default function Page() {
   }
 
   const handleSubmit = (release: Release) => {
-    console.log(release)
-
     const submitBand = async (params: {
       release: Release
     }) => {
@@ -126,8 +124,6 @@ export default function Page() {
 
     return disabled;
   }, [releaseForm]);
-
-  console.log(releaseForm)
 
   return (
     <main className="py-[1rem] flex-col">

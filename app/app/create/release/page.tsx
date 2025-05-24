@@ -97,19 +97,9 @@ export default function Page() {
   const [releaseForm, setReleaseForm] = useState<Release>({ } as Release);
   const [typing, setTyping] = useState<boolean>(false);
   const searchParams = useSearchParams();
+  const band_id = searchParams.get("band_id");
 
-  useEffect(() => {
-    const band_id = searchParams.get("band_id");
-
-    if (band_id) {
-      setReleaseForm({
-        ...releaseForm,
-        band_id
-      });
-    }
-  }, [searchParams])
-
-  const requiredFields: ReleaseKey[] = ["name", "type"];
+  const requiredFields: ReleaseKey[] = ["name", "release_type", "label"];
 
   const handleSelect = (key: string, value: string) => {
     setReleaseForm({
@@ -118,13 +108,11 @@ export default function Page() {
     })
   }
 
-  const handleSubmit = (release: Release, bandId: string) => {
-    console.log(release)
-
-    const submitBand = async (release: Release) => {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URI}:${process.env.NEXT_PUBLIC_API_PORT}/release/new?=band${bandId}`, {
+  const handleSubmit = (release: Release, bandId: string | null) => {
+    const submitRelease = async (release: Release) => {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URI}:${process.env.NEXT_PUBLIC_API_PORT}/release/new?band=${bandId}`, {
         method: "POST",
-        body: JSON.stringify(release),
+        body: JSON.stringify({...release, length: 123, art: "test.png"}),
         headers: {
           "Content-Type": "application/json"
         }
@@ -133,9 +121,11 @@ export default function Page() {
       return response.json();
     }
 
-    submitBand(release).then((res) => {
-      console.log(res)
-    })
+    if (bandId) {
+      submitRelease(release).then((res) => {
+        console.log(res)
+      })
+    }
   }
 
   const submitDisabled = useMemo(() => {
@@ -175,6 +165,19 @@ export default function Page() {
               typing={typing}
             />
             <YearSelect onChange={handleSelect} />
+            {/* <FormInput
+              formKey="label"
+              onUpdate={updateForm}
+              placeholder="Label"
+              setTyping={setTyping}
+              typing={typing}
+            /> */}
+            <FormSelect
+              formKey="release_type"
+              label="Release Type"
+              onChange={handleSelect}
+              options={releaseTypes}
+            />
             <FormInput
               formKey="label"
               onUpdate={updateForm}
@@ -182,15 +185,9 @@ export default function Page() {
               setTyping={setTyping}
               typing={typing}
             />
-            <FormSelect
-              formKey="type"
-              label="Release Type"
-              onChange={handleSelect}
-              options={releaseTypes}
-            />
             <Button
               disabled={submitDisabled || typing}
-              onClick={() => handleSubmit(releaseForm)}
+              onClick={() => handleSubmit(releaseForm, band_id)}
             >
               Submit
             </Button>

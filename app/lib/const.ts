@@ -1021,9 +1021,8 @@ export const statusMap = {
 }
 
 export const releaseTypes = [
-  { value: "full-length", name: "Full Length" },
+  { value: "lp", name: "LP" },
   { value: "ep", name: "EP" },
   { value: "demo", name: "Demo" },
-  { value: "single", name: "Single" },
   { value: "split", name: "Split" }
 ]

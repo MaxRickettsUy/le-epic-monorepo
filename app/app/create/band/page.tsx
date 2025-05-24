@@ -122,10 +122,33 @@ export default function Page() {
               placeholder="Name"
             />
             <CountrySelect onChange={handleSelect} />
-            <Input type="text" placeholder="City" />
-            <Input type="text" placeholder="State" />
+            <Input
+              onChange={(e) => {
+                if (!typing) {
+                  setTyping(true);
+                }
+                debounceInput('location', e);
+              }}
+              type="text"
+              placeholder="City, State"
+            />
+            <Input
+              onChange={(e) => {
+                if (!typing) {
+                  setTyping(true);
+                }
+                debounceInput('label', e);
+              }}
+              type="text"
+              placeholder="Label"
+            />
             <StatusSelect onChange={handleSelect} />
-            <Button disabled={submitDisabled || typing} onClick={() => handleSubmit(bandForm)}>Submit</Button>
+            <Button
+              disabled={submitDisabled || typing}
+              onClick={() => handleSubmit(bandForm)}
+            >
+              Submit
+            </Button>
           </div>
         </div>
         <span>{JSON.stringify(bandForm)}</span>

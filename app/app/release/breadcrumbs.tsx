@@ -28,7 +28,8 @@ export function AlbumBreadcrumbs(props: Props) {
             href={{
               pathname: '/band',
               query: {
-                name: props.band, id: props.id }
+                id: props.id
+              }
             }}
           >
             {props.band}

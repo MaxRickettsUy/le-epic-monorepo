@@ -12,11 +12,6 @@ import { Release } from "@/lib/types"
 import { faker } from "@faker-js/faker";
 import Link from "next/link";
 
-interface Props {
-  releases: Release[];
-  band: string;
-}
-
 const ReleaseLink = (props: { release: Release }) => (
   <Link
     className="hover:underline"
@@ -31,7 +26,12 @@ const ReleaseLink = (props: { release: Release }) => (
   </Link>
 )
 
-export const DiscographyTable = (props: Props) => {
+export const DiscographyTable = (props: {
+  band: string;
+  releases: Release[];
+}) => {
+  console.log(props.releases)
+
   return (
     <Table>
       {/* <TableCaption>A list of your recent invoices.</TableCaption> */}
@@ -43,15 +43,15 @@ export const DiscographyTable = (props: Props) => {
         </TableRow>
       </TableHeader>
       <TableBody>
-        {props.releases.map((release) => (
-          <TableRow key={release.id}>
+        {props.releases.map((release, i) => (
+          <TableRow key={i}>
             <TableCell className="font-medium">{release.year}</TableCell>
             <TableCell>
               <ReleaseLink release={release} />
             </TableCell>
             { release.review_count > 0 && (
               <TableCell>
-                {release.review_avg}% ({release.review_count} reviews)
+                {release.avg_review}% ({release.review_count} reviews)
               </TableCell>
             )}
           </TableRow>

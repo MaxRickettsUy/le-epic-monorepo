@@ -36,8 +36,6 @@ export default function Home() {
     fetchData().then((res) => setBands(res.bands));
   }, [])
 
-  console.log(bands)
-
   return (
     <main className="py-[1rem] flex-col">
       <Header />

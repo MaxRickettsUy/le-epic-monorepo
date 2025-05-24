@@ -11,6 +11,7 @@ import { AlbumBreadcrumbs } from "./breadcrumbs";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Header } from "@/components/ui/header";
 import Image from "next/image";
+import { TopSection } from "@/components/TopSection";
 
 // const RecentAdditions = () => {
 //   return (
@@ -108,12 +109,12 @@ export default function Album() {
   }, [searchParams])
 
   return (
-    <main className="py-[1rem] flex-col">
+    <main className="py-[1rem] flex-col border border-red-500">
       <Header />
       <div className="py-[1rem] w-full">
         <Separator />
       </div>
-      <div className="flex flex-col md:flex-row lg:flex-row xl:flex-row gap-[1rem] p-[1rem]">
+      <div className="flex flex-col gap-[1rem] p-[1rem] border border-red-500">
         { release && (
           <AlbumBreadcrumbs
             band={release?.band.name}
@@ -122,36 +123,12 @@ export default function Album() {
           />
         )}
         { release && (
-          <div className="flex flex-col gap-[1rem] p-[1rem]">
-            <div className="flex flex-row">
-              <div className="flex flex-col gap-[1rem]">
-                <span className="text-4xl">{release?.name}</span>
-                <Link
-                  className="hover:underline"
-                  href={{
-                    pathname: '/band',
-                    query: {
-                      id: release.band_id
-                    }
-                  }}
-                >
-                  {release.band.name}
-                </Link>
-              </div>
-              { release.name && (
-                <Image
-                  className="ml-auto"
-                  alt={release.name}
-                  src={faker.image.urlLoremFlickr({ category: 'people' })}
-                  width={250}
-                  height={250}
-                />
-              )}
-            </div>
-            <Tabs defaultValue="discography">
+          <div className="flex flex-col md:flex-row gap-[1rem] p-4 border border-red-500">
+            { release && <TopSection id={release.band_id} name={release.band.name} /> }
+            <Tabs defaultValue="discography" className="w-full border border-red-500 p-4">
               <TabsList>
                 <TabsTrigger value="tracks">Tracks</TabsTrigger>
-                <TabsTrigger value="lineup">Linueup</TabsTrigger>
+                <TabsTrigger value="lineup">Lineup</TabsTrigger>
                 <TabsTrigger value="reviews">Reviews</TabsTrigger>
                 <TabsTrigger value="other">Other</TabsTrigger>
               </TabsList>

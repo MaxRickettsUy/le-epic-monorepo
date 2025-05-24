@@ -50,7 +50,7 @@ export interface Track {
 export interface Release {
   art: string;
   band: Band;
-  band_id: string;
+  band_id: number;
   id: number;
   label?: string;
   length: number;

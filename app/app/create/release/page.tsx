@@ -8,8 +8,9 @@ import { Release } from "@/lib/types";
 import { ChangeEvent, useEffect, useMemo, useState } from "react";
 import _ from 'lodash';
 import { Header } from "@/components/ui/header";
-import { useSearchParams } from "next/navigation";
+import { redirect, useSearchParams } from "next/navigation";
 import { releaseTypes } from "@/lib/const";
+import { useRouter } from "next/router";
 
 interface SelectOption {
   [key: string]: string;
@@ -99,6 +100,7 @@ export default function Page() {
   const searchParams = useSearchParams();
   const band_id = searchParams.get("band_id");
 
+
   const requiredFields: ReleaseKey[] = ["name", "release_type", "label"];
 
   const handleSelect = (key: string, value: string) => {
@@ -109,6 +111,8 @@ export default function Page() {
   }
 
   const handleSubmit = (release: Release, bandId: string | null) => {
+    console.log(release);
+
     const submitRelease = async (release: Release) => {
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URI}:${process.env.NEXT_PUBLIC_API_PORT}/release/new?band=${bandId}`, {
         method: "POST",
@@ -123,7 +127,7 @@ export default function Page() {
 
     if (bandId) {
       submitRelease(release).then((res) => {
-        console.log(res)
+        redirect(`/band?id=${bandId}`);
       })
     }
   }

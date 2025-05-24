@@ -12,19 +12,21 @@ import { Release } from "@/lib/types"
 import { faker } from "@faker-js/faker";
 import Link from "next/link";
 
-const ReleaseLink = (props: { release: Release }) => (
-  <Link
-    className="hover:underline"
-    href={{
-      pathname: "/release",
-      query: {
-        id: props.release.id
-      }
-    }}
-  >
-    {props.release.name}
-  </Link>
-)
+const ReleaseLink = (props: { release: Release }) => {
+  return (
+    <Link
+      className={`hover:underline ${props.release.release_type === "lp" ? 'font-bold' : ''}`}
+      href={{
+        pathname: "/release",
+        query: {
+          id: props.release.id
+        }
+      }}
+    >
+      {props.release.name}
+    </Link>
+  )
+};
 
 export const DiscographyTable = (props: {
   band: string;
@@ -37,8 +39,9 @@ export const DiscographyTable = (props: {
       {/* <TableCaption>A list of your recent invoices.</TableCaption> */}
       <TableHeader>
         <TableRow>
-          <TableHead className="w-[100px]">Year</TableHead>
+          <TableHead className="w-100">Year</TableHead>
           <TableHead>Name</TableHead>
+          <TableHead>Type</TableHead>
           <TableHead>Rating</TableHead>
         </TableRow>
       </TableHeader>
@@ -49,6 +52,7 @@ export const DiscographyTable = (props: {
             <TableCell>
               <ReleaseLink release={release} />
             </TableCell>
+            <TableCell>{release.release_type.toUpperCase()}</TableCell>
             { release.review_count > 0 && (
               <TableCell>
                 {release.avg_review}% ({release.review_count} reviews)

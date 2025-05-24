@@ -12,7 +12,7 @@ import Link from "next/link";
 interface Props {
   band: string;
   name: string;
-  id: string;
+  id: number;
 }
 
 export function AlbumBreadcrumbs(props: Props) {

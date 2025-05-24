@@ -45,7 +45,8 @@ def create():
     db.session.commit()
 
     #TODO what return on successful create?
-    return 'band created'
+    return jsonify({"message": "Band Created"}), 200
+
 
 @bp.route('/<id>', methods=['GET',])
 def get(id):
@@ -63,7 +64,7 @@ def get(id):
         })
 
     return jsonify({
-        'band': band.as_dict(),
+        **band.as_dict(),
         'releases': release_list
     })
 

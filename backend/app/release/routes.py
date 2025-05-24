@@ -33,7 +33,8 @@ def create():
     )
     db.session.add(release)
     db.session.commit()
-    return 'release created'
+    return jsonify({"message": "Release created"}), 200
+
 
 @bp.route('/<id>', methods=['GET',])
 def get(id):

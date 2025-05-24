@@ -45,7 +45,7 @@ def create():
     db.session.commit()
 
     #TODO what return on successful create?
-    return jsonify({"message": "Band Created"}), 200
+    return jsonify({ "message": 'Band created', 'id': band.id }), 200
 
 
 @bp.route('/<id>', methods=['GET',])

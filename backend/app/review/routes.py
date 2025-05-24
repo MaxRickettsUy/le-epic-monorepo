@@ -9,7 +9,7 @@ import json
 #TODO very future... get all by filter?
 
 @bp.route('/new', methods=['POST',])
-@login_required
+# @login_required
 def create():
     release_id = request.args.get('release', 0, type=int)
     release = db.first_or_404(sa.select(Release).where(Release.id == release_id))
@@ -34,7 +34,7 @@ def get(id):
     return jsonify({'review': review.as_dict()})
 
 @bp.route('/<id>/update', methods=['POST',])
-@login_required
+# @login_required
 def update(id):
     review = db.first_or_404(sa.select(Review).where(Review.id == id))
     json_data = request.get_json()
@@ -44,7 +44,7 @@ def update(id):
     return 'review updated'
 
 @bp.route('/<id>/delete', methods=['DELETE',])
-@login_required
+# @login_required
 def delete(id):
     review = db.first_or_404(sa.select(Review).where(Review.id == id))
     db.session.delete(review)

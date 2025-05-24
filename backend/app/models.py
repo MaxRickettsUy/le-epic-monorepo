@@ -4,8 +4,9 @@ import sqlalchemy.orm as so
 from werkzeug.security import generate_password_hash, check_password_hash
 from app import db, login
 from flask_login import UserMixin
-from datetime import timedelta
+from datetime import datetime, timedelta, timezone
 import secrets
+
 
 #TODO probably delete but keep here in case i need a many to many table
 #followers = sa.Table(
@@ -22,6 +23,10 @@ class Band(db.Model):
     name: so.Mapped[str] = so.mapped_column(sa.String(100), index=True)
     status: so.Mapped[str] = so.mapped_column(sa.String(25))
     band_picture: so.Mapped[Optional[str]] = so.mapped_column(sa.String(150))
+    location: so.Mapped[str] = so.mapped_column(sa.String(100))
+    country: so.Mapped[str] = so.mapped_column(sa.String(100))
+    label: so.Mapped[str] = so.mapped_column(sa.String(100))
+
 
     releases: so.WriteOnlyMapped['Release'] = so.relationship(back_populates='band', passive_deletes=True)
 
@@ -40,7 +45,7 @@ class User(UserMixin, db.Model):
 
     def as_dict(self):
         return {c.name: getattr(self, c.name) for c in self.__table__.columns}
-    
+
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
 
@@ -56,7 +61,7 @@ class User(UserMixin, db.Model):
         self.token_expiration = now + timedelta(seconds=expires_in)
         db.session.add(self)
         return self.token
-    
+
     def revoke_token(self):
         self.token_expiration = datetime.now(timezone.utc) - timedelta(seconds=1)
 
@@ -79,6 +84,9 @@ class Release(db.Model):
     length: so.Mapped[Optional[int]] = so.mapped_column(sa.Integer())
     art: so.Mapped[Optional[str]] = so.mapped_column(sa.String(150))
     release_type: so.Mapped[str] = so.mapped_column(sa.String(10))
+    label: so.Mapped[str] = so.mapped_column(sa.String(100))
+    year:  so.Mapped[int] = so.mapped_column(sa.Integer())
+
 
     band_id: so.Mapped[int] = so.mapped_column(sa.ForeignKey(Band.id), index=True)
 
@@ -93,9 +101,9 @@ class Release(db.Model):
     def avg_review_score(self):
         reviews = db.session.scalars(self.reviews.select()).all()
         review_count = len(reviews)
-        review_scores = []
-        for review in reviews:
-            review_scores.append(review.score)
+        if review_count == 0:
+            return 0  # or None, depending on how you want to handle this case
+        review_scores = [review.score for review in reviews]
         avg_review = sum(review_scores) / review_count
         return avg_review
 
@@ -116,7 +124,7 @@ class Track(db.Model):
     lyrics: so.Mapped[Optional[str]] = so.mapped_column(sa.String(256))
 
     release_id: so.Mapped[int] = so.mapped_column(sa.ForeignKey(Release.id), index=True)
-    
+
     release: so.Mapped[Release] = so.relationship(back_populates='tracks')
 
     def as_dict(self):

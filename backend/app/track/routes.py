@@ -7,7 +7,7 @@ import json
 
 #TODO bulk create tracks
 @bp.route('/new', methods=['POST',])
-@login_required
+# @login_required
 def create():
     release_id = request.args.get('release', 0, type=int)
     release = db.first_or_404(sa.select(Release).where(Release.id == release_id))
@@ -30,7 +30,7 @@ def get(id):
     return jsonify({'track': track.as_dict()})
 
 @bp.route('/<id>/update', methods=['POST',])
-@login_required
+# @login_required
 def update(id):
     track = db.first_or_404(sa.select(Track).where(Track.id == id))
     json_data = request.get_json()
@@ -42,7 +42,7 @@ def update(id):
     return 'track updated'
 
 @bp.route('/<id>/delete', methods=['DELETE',])
-@login_required
+# @login_required
 def delete(id):
     track = db.first_or_404(sa.select(Track).where(Track.id == id))
     db.session.delete(track)

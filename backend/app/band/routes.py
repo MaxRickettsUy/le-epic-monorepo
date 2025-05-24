@@ -23,14 +23,24 @@ def get_all():
     return jsonify({'bands': band_list, 'next': next_url, 'prev': prev_url})
 
 @bp.route('/new', methods=['POST',])
-@login_required
+# @login_required
 def create():
     json_data = request.get_json()
     name = json_data['name']
     status = json_data['status']
     band_picture = json_data['band_picture']
+    location = json_data['location']
+    country = json_data['country']
+    label = json_data['label']
 
-    band = Band(name=name,status=status,band_picture=band_picture)
+    band = Band(
+        name=name,
+        status=status,
+        band_picture=band_picture,
+        location=location,
+        country=country,
+        label=label
+    )
     db.session.add(band)
     db.session.commit()
 
@@ -42,30 +52,37 @@ def get(id):
     band = db.first_or_404(sa.select(Band).where(Band.id == id))
     releases = db.session.execute(band.releases.select()).scalars()
     release_list = []
+
     for release in releases:
         review_count = release.reviews_count()
         avg_review = release.avg_review_score()
         release_list.append({
-            'release': release.as_dict(),
+            **release.as_dict(), # spread attrs
             'review_count': review_count,
             'avg_review': avg_review
         })
-    return jsonify({'band': band.as_dict(), 'releases': release_list})
+
+    return jsonify({
+        'band': band.as_dict(),
+        'releases': release_list
+    })
 
 @bp.route('/<id>/update', methods=['POST',])
-@login_required
+# @login_required
 def update(id):
     band = db.first_or_404(sa.select(Band).where(Band.id == id))
     json_data = request.get_json()
     band.name = json_data['name']
     band.status = json_data['status']
     band.band_picture = json_data['band_picture']
+    band.location = json_data['location']
+    band.country = json_data['country']
     db.session.commit()
     #TODO what return on successful update?
     return 'band updated'
 
 @bp.route('/<id>/delete', methods=['DELETE',])
-@login_required
+# @login_required
 def delete(id):
     band = db.first_or_404(sa.select(Band).where(Band.id == id))
     db.session.delete(band)

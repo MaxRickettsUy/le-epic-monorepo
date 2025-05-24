@@ -3,6 +3,8 @@ from config import Config
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from flask_login import LoginManager
+from flask_cors import CORS
+
 
 #initializing dependencies
 db = SQLAlchemy()
@@ -15,6 +17,8 @@ def create_app(config_class=Config):
     app = Flask(__name__)
     app.config.from_object(config_class)
 
+    CORS(app)
+
     db.init_app(app)
     migrate.init_app(app, db)
     login.init_app(app)
@@ -24,8 +28,8 @@ def create_app(config_class=Config):
     from app.band import bp as band_bp
     app.register_blueprint(band_bp)
 
-    from app.user import bp as user_bp
-    app.register_blueprint(user_bp)
+    # from app.user import bp as user_bp
+    # app.register_blueprint(user_bp)
 
     from app.release import bp as release_bp
     app.register_blueprint(release_bp)
@@ -36,9 +40,9 @@ def create_app(config_class=Config):
     from app.track import bp as track_bp
     app.register_blueprint(track_bp)
 
-    from app.tokens import bp as tokens_bp
-    app.register_blueprint(tokens_bp)
-    
+    # from app.tokens import bp as tokens_bp
+    # app.register_blueprint(tokens_bp)
+
     return app
 
 from app import models

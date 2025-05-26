@@ -5,6 +5,11 @@ from app.models import Band, Release
 from app.band import bp
 import json
 
+import musicbrainzngs
+
+musicbrainzngs.set_useragent("Hardchives","0.1","mrucoding@gmail.com")
+musicbrainzngs.set_rate_limit(limit_or_interval=1.0, new_requests=1)
+
 #TODO general form validation
 
 @bp.route('/')
@@ -46,7 +51,6 @@ def create():
 
     #TODO what return on successful create?
     return jsonify({ "message": 'Band created', 'id': band.id }), 200
-
 
 @bp.route('/<id>', methods=['GET',])
 def get(id):
@@ -91,5 +95,53 @@ def delete(id):
     #TODO what return on successful delete?
     return 'band deleted'
 
+@bp.route('/search', methods=['GET'])
+def search_artist():
+    name = request.args.get('name')
+    # hardcore = request.args.get('hardcore', '').lower() in ['1', 'true']
+    if not name:
+        return jsonify({'error': "Missing required 'name' parameter"}), 400
 
+    query = f'artist:"{name}"'
+    # if hardcore:
+    query = f'tag:hardcore-punk AND {query}'
 
+    try:
+        result = musicbrainzngs.search_artists(query=query, limit=10)
+    except musicbrainzngs.WebServiceError as e:
+        return jsonify({'error': 'MusicBrainz API error', 'details': str(e)}), 503
+
+    return jsonify(result)
+
+@bp.route('/search_releases', methods=['GET'])
+def search_releases():
+    name = request.args.get('name')
+    if not name:
+        return jsonify({'error': "Missing required 'name' parameter"}), 400
+
+    # 1. Find the artist
+    artist_result = musicbrainzngs.search_artists(query=f'artist:"{name}"', limit=1)
+    artists = artist_result.get('artist-list', [])
+    if not artists:
+        return jsonify({'error': 'Band not found'}), 404
+
+    mbid = artists[0]['id']
+
+    # 2. Fetch tags and determine hardcore status
+    artist_info = musicbrainzngs.get_artist_by_id(mbid, includes=['tags'])
+    tags = [t['name'].lower() for t in artist_info['artist'].get('tag-list', [])]
+    allowed = {'hardcore-punk', 'hardcore', 'punk', 'punk rock', 'post-hardcore'}
+    is_not_hc = not any(g in tags for g in allowed)
+
+    # 3. Browse all releases for this artist
+    releases_response = musicbrainzngs.browse_releases(
+        artist=mbid,
+        includes=['release-groups'],
+        limit=100
+    )
+
+    # 4. Return releases plus flag
+    return jsonify({
+        'isNotHardcore': is_not_hc,
+        'releases': releases_response.get('release-list', [])
+    })

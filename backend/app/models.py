@@ -121,6 +121,8 @@ class Track(db.Model):
     track_number: so.Mapped[int] = so.mapped_column(sa.Integer())
     length: so.Mapped[Optional[int]] = so.mapped_column(sa.Integer())
     lyrics: so.Mapped[Optional[str]] = so.mapped_column(sa.String(256))
+    mbid: so.Mapped[Optional[str]] = so.mapped_column(sa.String(36), index=True, unique=True)
+    position: so.Mapped[Optional[int]] = so.mapped_column(sa.Integer())
 
     release_id: so.Mapped[int] = so.mapped_column(sa.ForeignKey(Release.id), index=True)
 

@@ -19,8 +19,16 @@ with app.app_context():
     # throttle to 1 request/sec
     musicbrainzngs.set_rate_limit(limit_or_interval=1.0, new_requests=1)
 
+    IGNORE_BAND_MBIDS = {
+        "8dcd04e4-7695-4d80-bae9-1d7d680a38ef" , # 'Captain Beefheart & His Magic Band'
+        "1501f6bb-07c6-4555-95d7-e83eef2e7f56",  # 'Frenchy and the Punk'
+        "46e63d3b-d91b-4791-bb73-e9f638a45ea0", # 'Joan Jett & The Blackhearts'
+        "b10db9ad-b4c3-47f3-a7a4-37864b134f65", # 'Soul Asylum'
+        "1253e5e9-eaa7-4ce6-81b8-09725e8cee43", # 'Iggy and the Stooges'
+    }
+
     # ─── Seeding parameters ─────────────────────────────────────────────────────
-    tag_query = "tag:hardcore-punk"
+    tag_query = "tag:*punk*"
     prefixes  = list("a")
     # prefixes  = list("abcdefghijklmnopqrstuvwxyz")
 
@@ -50,6 +58,11 @@ with app.app_context():
                 mbid = a.get("id")
                 name    = a.get("name")
                 country = a.get("country", "")
+
+                # if mbid in IGNORE_BAND_MBIDS: continue
+                if mbid in IGNORE_BAND_MBIDS:
+                    print(f"  - Ignoring band (on ignore list): {name} ({mbid})")
+                    continue
 
                 # upsert by mbid
                 band = Band.query.filter_by(mbid=mbid).first()

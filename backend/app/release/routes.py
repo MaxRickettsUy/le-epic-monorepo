@@ -1,7 +1,7 @@
 from flask import current_app, url_for, request, redirect, flash,jsonify
 import sqlalchemy as sa
 from app import db
-from app.models import Release, Band
+from app.models import Release, Band, Track
 from app.release import bp
 import json
 from sqlalchemy.orm import joinedload
@@ -38,11 +38,33 @@ def create():
 
 @bp.route('/<id>', methods=['GET',])
 def get(id):
-    release = (Release.query
-               .options(joinedload(Release.band))
-               .get_or_404(id))
+    # 1) Load the Release and its Band (but NOT tracks via joinedload)
+    release = (
+        Release.query
+        .options(joinedload(Release.band))
+        .get_or_404(id)
+    )
 
-    # 2) Return nested JSON
+    # 2) Manually fetch all Track rows for this release
+    #    (adjust `position` if you store track order differently)
+    tracks = (
+        Track.query
+        .filter_by(release_id=release.id)
+        .order_by(Track.position)
+        .all()
+    )
+
+    # 3) Build a list of track dictionaries
+    tracks_list = []
+    for t in tracks:
+        tracks_list.append({
+            'id': t.id,
+            'title': t.title,
+            'length': t.length,
+            'position': t.position
+        })
+
+    # 4) Return nested JSON including band + tracks
     return jsonify({
         'id': release.id,
         'name': release.name,
@@ -55,8 +77,10 @@ def get(id):
             'location': release.band.location,
             'country': release.band.country,
             'label': release.band.label
-        }
+        },
+        'tracks': tracks_list
     })
+
 
 @bp.route('/<id>/update', methods=['POST',])
 # @login_required

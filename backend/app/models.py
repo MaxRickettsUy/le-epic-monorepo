@@ -26,7 +26,7 @@ class Band(db.Model):
     location: so.Mapped[str] = so.mapped_column(sa.String(100))
     country: so.Mapped[str] = so.mapped_column(sa.String(100))
     label: so.Mapped[str] = so.mapped_column(sa.String(100))
-
+    mbid: so.Mapped[Optional[str]] = so.mapped_column(sa.String(36), index=True, unique=True)
 
     releases: so.WriteOnlyMapped['Release'] = so.relationship(back_populates='band', passive_deletes=True)
 
@@ -79,13 +79,13 @@ def load_user(id):
 
 class Release(db.Model):
     id: so.Mapped[int] = so.mapped_column(primary_key=True)
-    name: so.Mapped[str] = so.mapped_column(sa.String(100))
-    #have length in seconds?
+    name: so.Mapped[str] = so.mapped_column(sa.String(200))
     length: so.Mapped[Optional[int]] = so.mapped_column(sa.Integer())
     art: so.Mapped[Optional[str]] = so.mapped_column(sa.String(150))
-    release_type: so.Mapped[str] = so.mapped_column(sa.String(10))
-    label: so.Mapped[str] = so.mapped_column(sa.String(100))
-    year:  so.Mapped[int] = so.mapped_column(sa.Integer())
+    release_type: so.Mapped[Optional[str]] = so.mapped_column(sa.String(100))
+    label: so.Mapped[Optional[str]] = so.mapped_column(sa.String(100))
+    year:  so.Mapped[Optional[int]] = so.mapped_column(sa.Integer())
+    mbid: so.Mapped[Optional[str]] = so.mapped_column(sa.String(36), index=True, unique=True)
 
 
     band_id: so.Mapped[int] = so.mapped_column(sa.ForeignKey(Band.id), index=True)
@@ -114,7 +114,6 @@ class Release(db.Model):
 
     def as_dict(self):
         return {c.name: getattr(self, c.name) for c in self.__table__.columns}
-
 
 class Track(db.Model):
     id: so.Mapped[int] = so.mapped_column(primary_key=True)

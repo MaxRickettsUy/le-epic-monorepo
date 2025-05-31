@@ -5,6 +5,9 @@ from app import create_app, db
 from app.models import Band
 import logging
 
+max_bands = 10
+added_count = 0
+
 # ─── Setup Flask app context ───────────────────────────────────────────────────
 app = create_app()
 
@@ -42,17 +45,21 @@ with app.app_context():
                 break
 
             for a in artists:
+                if added_count >= max_bands:
+                    break
+                mbid = a.get("id")
                 name    = a.get("name")
                 country = a.get("country", "")
-                # upsert by name
 
-                band = Band.query.filter_by(name=name).first()
+                # upsert by mbid
+                band = Band.query.filter_by(mbid=mbid).first()
 
                 print(f"Processing band: {name} (country: {country})")
                 print(f"Existing band: {band}")
 
                 if not band:
                     band = Band(
+                        mbid=mbid,
                         name=name,
                         status="",           # default/unknown
                         band_picture=None,
@@ -62,6 +69,7 @@ with app.app_context():
                     )
                     print(f"Creating new band: {name}")
                     db.session.add(band)
+                    added_count += 1
                 else:
                     band.country = country
 
@@ -70,6 +78,8 @@ with app.app_context():
             except Exception as e:
                 print("Commit failed:", e)
                 db.session.rollback()
+            if added_count >= max_bands:
+                break
             # pagination break
             if len(artists) < 100:
                 break

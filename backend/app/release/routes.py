@@ -71,6 +71,7 @@ def get(id):
         'length': release.length,
         'release_type': release.release_type,
         'band_id': release.band_id,
+        'mbid': release.mbid,
         'band': {
             'id': release.band.id,
             'name': release.band.name,

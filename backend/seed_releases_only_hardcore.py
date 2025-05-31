@@ -25,12 +25,14 @@ with app.app_context():
         print(f"\nProcessing releases for band: {band.name} (MBID: {mbid})")
 
         offset = 0
+        releases_added = 0  # <-- Track how many releases we add for this band
+
         while True:
             try:
-                # Browse releases (we only need release-group data here to check type)
+                # Browse releases (only fetch release-group so we can inspect type if needed)
                 resp = musicbrainzngs.browse_releases(
                     artist=mbid,
-                    includes=["release-groups"],  # fetch release-group type here
+                    includes=["release-groups"],
                     limit=100,
                     offset=offset
                 )
@@ -49,11 +51,11 @@ with app.app_context():
                 relgroup     = r.get("release-group", {})
                 rel_type     = (relgroup.get("type") or "").strip()
 
-                # ─── 1) Lookup the full release to inspect tags (no "release-events" include) ───────
+                # ─── 1) Lookup the full release to inspect tags ───────────────────
                 try:
                     detailed = musicbrainzngs.get_release_by_id(
                         release_mbid,
-                        includes=["tags", "release-groups"]  # "release-events" removed
+                        includes=["tags", "release-groups"]
                     )
                 except musicbrainzngs.WebServiceError as e:
                     print(f"    ⚠️  Could not lookup release details for {title} ({release_mbid}): {e}")
@@ -67,7 +69,7 @@ with app.app_context():
                     print(f"  - Skipping (no 'hardcore punk' tag): {title} (type: {rel_type})")
                     continue
 
-                # ─── 2) Extract year from release-event-list (first event). No extra include needed
+                # ─── 2) Extract year from release-event-list (first event) ────────
                 year = None
                 event_list = detailed.get("release", {}).get("release-event-list", [])
                 if event_list:
@@ -148,6 +150,7 @@ with app.app_context():
                     db.session.rollback()
                     print(f"  ! Skipped duplicate MBID insert: {title} ({release_mbid})")
                 else:
+                    releases_added += 1
                     print(f"  + Added release: {title} (MBID: {release_mbid}, type: {rel_type}, year: {year})")
 
                 # Respect rate-limit before processing next tagged release
@@ -159,5 +162,18 @@ with app.app_context():
 
             offset += 100
             time.sleep(1)  # respect 1 req/sec
+
+        # ─── 5) After scanning all releases for this band ─────────────────────────
+        if releases_added == 0:
+            # No releases matched "hardcore punk" for this band → remove the band
+            print(f"  ⚠️  No qualifying releases found for '{band.name}'. Removing band from DB.")
+            try:
+                db.session.delete(band)
+                db.session.commit()
+            except Exception as e:
+                print(f"  ! Failed to remove band '{band.name}': {e}")
+                db.session.rollback()
+        else:
+            print(f"  ✅ Added {releases_added} release(s) for band '{band.name}'.")
 
     print("\n✅ Release seeding complete.")

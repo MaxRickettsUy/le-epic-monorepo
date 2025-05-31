@@ -24,7 +24,14 @@ with app.app_context():
         "1501f6bb-07c6-4555-95d7-e83eef2e7f56",  # 'Frenchy and the Punk'
         "46e63d3b-d91b-4791-bb73-e9f638a45ea0", # 'Joan Jett & The Blackhearts'
         "b10db9ad-b4c3-47f3-a7a4-37864b134f65", # 'Soul Asylum'
-        "1253e5e9-eaa7-4ce6-81b8-09725e8cee43", # 'Iggy and the Stooges'
+        "1253e5e9-eaa7-4ce6-81b8-09725e8cee43", # 'Iggy and the Stooges',
+        "69421e11-e4c3-4854-951b-ceab4972e38e", # 'Alkaline Trio',
+        "3c0eb318-d2ba-45aa-9077-b83746cc56da", # 'Amanda Palmer',
+        "7509421d-1074-442f-be8f-b526167afcb3", # 'The Presidents of the United States of America',
+        "28c5d97f-4321-4ef4-8ac2-d9d93b0eb16c", # 'Man or Astro?',
+        "57805d77-f947-4851-b7fb-78baad154451", # The Ataris
+        "b9472588-93f3-4922-a1a2-74082cdf9ce8", # 'Panic! At The Disco',
+        "0c624637-4a2c-4df0-ba80-b4ddb25bb5e5", # 'GG Allin',
     }
 
     # ─── Seeding parameters ─────────────────────────────────────────────────────

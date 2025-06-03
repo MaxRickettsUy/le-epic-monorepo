@@ -73,6 +73,8 @@ services:
       - "8000:5000"
     networks:
       - app-network
+    volumes:
+      - ./data:/app/data
 
 volumes:
   mysql_data:

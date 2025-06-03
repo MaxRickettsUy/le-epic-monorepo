@@ -50,7 +50,12 @@ RUN pip install --no-cache-dir --upgrade pip \
 # Copy the rest of your application code
 COPY app/        ./app/
 COPY migrations/ ./migrations/
-COPY hc_archives_back.py config.py boot.sh seed_bands.py seed_releases_only_hardcore.py seed_tracks.py ./
+COPY hc_archives_back.py config.py boot.sh seed_bands_with_blocklist.py generate_blocklist_from_releases.py seed_tracks.py ./
+
+RUN mkdir -p /app/data \
+    && chmod 755 /app/data
+
+VOLUME ["/app/data"]
 
 # Make your startup script executable
 RUN chmod +x boot.sh

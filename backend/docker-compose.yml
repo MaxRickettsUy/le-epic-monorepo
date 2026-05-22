@@ -1,0 +1,84 @@
+# Here’s a more robust, “cleaned-up” docker-compose.yml that:
+
+# Uses a more recent Compose format (v3.8).
+
+# Pulls a specific MySQL version.
+
+# Persists MySQL data via a named volume.
+
+# Adds a simple healthcheck so your app waits until MySQL is really ready.
+
+# Moves secrets into an optional .env file.
+
+# Defines a bridge network for clarity.
+
+# Sets sensible restart policies.
+
+# Version bump to 3.8 gives you healthcheck and improved depends_on conditions.
+
+# Named volume (mysql_data) persists your database across container restarts/rebuilds.
+
+# Healthcheck ensures hc_archives_back only starts once MySQL is actually accepting connections.
+
+# .env file centralizes sensitive config and keeps your compose file cleaner.
+
+# Networks explicitly segment your app from any other Docker networks.
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: mysql
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE:    ${MYSQL_DATABASE}
+      MYSQL_USER:        ${MYSQL_USER}
+      MYSQL_PASSWORD:    ${MYSQL_PASSWORD}
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    networks:
+      - app-network
+
+  # hc_archives_back:
+  #   build:
+  #     context: .
+  #     dockerfile: Dockerfile
+  #   depends_on:
+  #     - mysql
+  #   environment:
+  #     - DATABASE_URL=mysql+pymysql://root:example@mysql/hc_archives_back
+  #   ports:
+  #     - "8000:5000"
+
+  hc_archives_back:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: hc_archives_back
+    depends_on:
+      mysql:
+        condition: service_healthy
+    restart: on-failure
+    env_file: .env
+    environment:
+      # Use the same creds from .env
+      DATABASE_URL: mysql+pymysql://root:${MYSQL_PASSWORD}@mysql/${MYSQL_DATABASE}
+    ports:
+      - "8000:5000"
+    networks:
+      - app-network
+    volumes:
+      - ./data:/app/data
+
+volumes:
+  mysql_data:
+
+networks:
+  app-network:
+    driver: bridge

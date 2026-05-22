@@ -1,0 +1,5 @@
+# Editor / OS
+.DS_Store
+*.swp
+.idea/
+.vscode/

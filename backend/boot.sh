@@ -1,11 +1,15 @@
 #!/bin/bash
 # this script is used to boot a Docker container
+MAX_RETRIES=5
+attempt=1
 while true; do
-    flask db upgrade
-    if [[ "$?" == "0" ]]; then
-        break
+    alembic -c migrations/alembic.ini upgrade head && break
+    if [[ "$attempt" -ge "$MAX_RETRIES" ]]; then
+        echo "Migration failed after $attempt attempts, giving up." >&2
+        exit 1
     fi
-    echo Deploy command failed, retrying in 5 secs...
+    echo "Migration command failed (attempt $attempt/$MAX_RETRIES), retrying in 5 secs..."
+    attempt=$((attempt + 1))
     sleep 5
 done
-exec gunicorn -b :5000 --access-logfile - --error-logfile - hc_archives_back:app
+exec uvicorn app:app --host 0.0.0.0 --port 5000

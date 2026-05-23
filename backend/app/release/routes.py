@@ -1,106 +1,59 @@
-from flask import current_app, url_for, request, redirect, flash,jsonify
 import sqlalchemy as sa
-from app import db
-from app.models import Release, Band, Track
-from app.release import bp
-import json
-from sqlalchemy.orm import joinedload
+from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy.orm import Session, joinedload, selectinload
 
-#TODO very future... get all by filter?
+from app import schemas
+from app.database import get_db
+from app.models import Album, Band
 
-@bp.route('/new', methods=['POST',])
-# @login_required
-def create():
-    band_id = request.args.get('band', 0, type=int)
-    band = db.first_or_404(sa.select(Band).where(Band.id == band_id))
+router = APIRouter()
 
-    json_data = request.get_json()
-    name = json_data['name']
-    length = json_data['length']
-    art = json_data['art']
-    release_type = json_data['release_type']
-    label = json_data['label']
-    year = json_data['year']
 
-    release = Release(
-        name=name,
-        length=length,
-        art=art,
-        release_type=release_type,
-        band=band,
-        label=label,
-        year=year
+@router.post("/new")
+def create(
+    payload: schemas.ReleaseCreate,
+    band: int = Query(..., description="Band id to attach the release to"),
+    db: Session = Depends(get_db),
+):
+    band_row = db.get(Band, band)
+    if band_row is None:
+        raise HTTPException(status_code=404, detail="Band not found")
+
+    album = Album(band=band_row, **payload.model_dump())
+    db.add(album)
+    db.commit()
+    return {"message": "Release created", "id": album.id}
+
+
+@router.get("/{id}", response_model=schemas.ReleaseDetail)
+def get(id: int, db: Session = Depends(get_db)):
+    album = db.scalar(
+        sa.select(Album)
+        .options(joinedload(Album.band), selectinload(Album.tracks))
+        .where(Album.id == id)
     )
-    db.session.add(release)
-    db.session.commit()
-    return jsonify({"message": "Release created"}), 200
+    if album is None:
+        raise HTTPException(status_code=404, detail="Release not found")
+    album.tracks.sort(key=lambda t: (t.position is None, t.position))
+    return album
 
 
-@bp.route('/<id>', methods=['GET',])
-def get(id):
-    # 1) Load the Release and its Band (but NOT tracks via joinedload)
-    release = (
-        Release.query
-        .options(joinedload(Release.band))
-        .get_or_404(id)
-    )
-
-    # 2) Manually fetch all Track rows for this release
-    #    (adjust `position` if you store track order differently)
-    tracks = (
-        Track.query
-        .filter_by(release_id=release.id)
-        .order_by(Track.position)
-        .all()
-    )
-
-    # 3) Build a list of track dictionaries
-    tracks_list = []
-    for t in tracks:
-        tracks_list.append({
-            'id': t.id,
-            'title': t.title,
-            'length': t.length,
-            'position': t.position
-        })
-
-    # 4) Return nested JSON including band + tracks
-    return jsonify({
-        'id': release.id,
-        'name': release.name,
-        'length': release.length,
-        'release_type': release.release_type,
-        'band_id': release.band_id,
-        'mbid': release.mbid,
-        'band': {
-            'id': release.band.id,
-            'name': release.band.name,
-            'location': release.band.location,
-            'country': release.band.country,
-            'label': release.band.label
-        },
-        'tracks': tracks_list
-    })
+@router.post("/{id}/update")
+def update(id: int, payload: schemas.ReleaseCreate, db: Session = Depends(get_db)):
+    album = db.get(Album, id)
+    if album is None:
+        raise HTTPException(status_code=404, detail="Release not found")
+    for field, value in payload.model_dump().items():
+        setattr(album, field, value)
+    db.commit()
+    return "release update successful"
 
 
-@bp.route('/<id>/update', methods=['POST',])
-# @login_required
-def update(id):
-    release = db.first_or_404(sa.select(Release).where(Release.id == id))
-    json_data = request.get_json()
-    release.name = json_data['name']
-    release.status = json_data['length']
-    release.band_picture = json_data['art']
-    release.release_type = json_data['release_type']
-    release.label = json_data['label']
-    release.year = json_data['year']
-    db.session.commit()
-    return 'release update successful'
-
-@bp.route('/<id>/delete', methods=['DELETE',])
-# @login_required
-def delete(id):
-    release = db.first_or_404(sa.select(Release).where(Release.id == id))
-    db.session.delete(release)
-    db.session.commit()
-    return 'release delete successful'
+@router.delete("/{id}/delete")
+def delete(id: int, db: Session = Depends(get_db)):
+    album = db.get(Album, id)
+    if album is None:
+        raise HTTPException(status_code=404, detail="Release not found")
+    db.delete(album)
+    db.commit()
+    return "release delete successful"

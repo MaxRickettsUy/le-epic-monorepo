@@ -1,48 +1,32 @@
-from flask import Flask
-from config import Config
-from flask_sqlalchemy import SQLAlchemy
-from flask_migrate import Migrate
-from flask_login import LoginManager
-from flask_cors import CORS
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+
+from app.band.routes import router as band_router
+from app.release.routes import router as release_router
+from app.settings import settings
+from app.track.routes import router as track_router
+
+app = FastAPI(title="le-epic-backend", version="0.2.0")
+
+origins = (
+    ["*"]
+    if settings.cors_origins == "*"
+    else [o.strip() for o in settings.cors_origins.split(",") if o.strip()]
+)
+allow_credentials = origins != ["*"]
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=allow_credentials,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+app.include_router(band_router, prefix="/band", tags=["band"])
+app.include_router(release_router, prefix="/release", tags=["release"])
+app.include_router(track_router, prefix="/track", tags=["track"])
 
 
-#initializing dependencies
-db = SQLAlchemy()
-migrate = Migrate()
-login = LoginManager()
-login.login_view = 'auth.login'
-
-#integrate all dependencies with app and spin up flask app
-def create_app(config_class=Config):
-    app = Flask(__name__)
-    app.config.from_object(config_class)
-
-    CORS(app)
-
-    db.init_app(app)
-    migrate.init_app(app, db)
-    login.init_app(app)
-
-    #TODO implement and register auth bp
-
-    from app.band import bp as band_bp
-    app.register_blueprint(band_bp)
-
-    # from app.user import bp as user_bp
-    # app.register_blueprint(user_bp)
-
-    from app.release import bp as release_bp
-    app.register_blueprint(release_bp)
-
-    from app.review import bp as review_bp
-    app.register_blueprint(review_bp)
-
-    from app.track import bp as track_bp
-    app.register_blueprint(track_bp)
-
-    # from app.tokens import bp as tokens_bp
-    # app.register_blueprint(tokens_bp)
-
-    return app
-
-from app import models
+@app.get("/health", tags=["meta"])
+def health():
+    return {"status": "ok"}

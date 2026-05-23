@@ -1,148 +1,129 @@
-from typing import Optional
+from datetime import datetime
+
 import sqlalchemy as sa
 import sqlalchemy.orm as so
-from werkzeug.security import generate_password_hash, check_password_hash
-from app import db, login
-from flask_login import UserMixin
-from datetime import datetime, timedelta, timezone
-import secrets
+
+from app.database import Base
+
+# NOTE: User and Review are intentionally not modeled — reviews are out of MVP.
+# The legacy `user`/`review` tables are dropped in the Phase 3 migration.
 
 
-#TODO probably delete but keep here in case i need a many to many table
-#followers = sa.Table(
-#    'followers',
-#    db.metadata,
-#    sa.Column('follower_id', sa.Integer, sa.ForeignKey('user.id'),
-#              primary_key=True),
-#    sa.Column('followed_id', sa.Integer, sa.ForeignKey('user.id'),
-#              primary_key=True)
-#)
+class TimestampMixin:
+    created_at: so.Mapped[datetime] = so.mapped_column(
+        sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False
+    )
+    updated_at: so.Mapped[datetime] = so.mapped_column(
+        sa.DateTime(timezone=True),
+        server_default=sa.func.now(),
+        onupdate=sa.func.now(),
+        nullable=False,
+    )
 
-class Band(db.Model):
+
+class Band(TimestampMixin, Base):
+    __tablename__ = "band"
+
     id: so.Mapped[int] = so.mapped_column(primary_key=True)
     name: so.Mapped[str] = so.mapped_column(sa.String(100), index=True)
     status: so.Mapped[str] = so.mapped_column(sa.String(25))
-    band_picture: so.Mapped[Optional[str]] = so.mapped_column(sa.String(150))
+    band_picture: so.Mapped[str | None] = so.mapped_column(sa.String(150))
     location: so.Mapped[str] = so.mapped_column(sa.String(100))
     country: so.Mapped[str] = so.mapped_column(sa.String(100))
     label: so.Mapped[str] = so.mapped_column(sa.String(100))
-    mbid: so.Mapped[Optional[str]] = so.mapped_column(sa.String(36), index=True, unique=True)
+    mbid: so.Mapped[str | None] = so.mapped_column(sa.String(36), index=True, unique=True)
 
-    releases: so.WriteOnlyMapped['Release'] = so.relationship(back_populates='band', passive_deletes=True)
+    # Attribute kept as `releases` so the API/JSON shape is unchanged even
+    # though the underlying model/table is now Album.
+    releases: so.Mapped[list["Album"]] = so.relationship(
+        back_populates="band",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+    )
+    members: so.Mapped[list["BandMember"]] = so.relationship(
+        back_populates="band",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+    )
 
-    def as_dict(self):
-        return {c.name: getattr(self, c.name) for c in self.__table__.columns}
 
-class User(UserMixin, db.Model):
-    id: so.Mapped[int] = so.mapped_column(primary_key=True)
-    username: so.Mapped[str] = so.mapped_column(sa.String(64), index=True, unique=True)
-    email: so.Mapped[str] = so.mapped_column(sa.String(120), index=True, unique=True)
-    password_hash: so.Mapped[Optional[str]] = so.mapped_column(sa.String(256))
-    token: so.Mapped[Optional[str]] = so.mapped_column(sa.String(32), index=True, unique=True)
-    token_expiration: so.Mapped[Optional[datetime]]
+class Album(TimestampMixin, Base):
+    # Renamed from Release: one row per release-group (album), not per pressing.
+    __tablename__ = "album"
 
-    reviews: so.WriteOnlyMapped['Review'] = so.relationship(back_populates='author', passive_deletes=True)
-
-    def as_dict(self):
-        return {c.name: getattr(self, c.name) for c in self.__table__.columns}
-
-    def set_password(self, password):
-        self.password_hash = generate_password_hash(password)
-
-    def check_password(self, password):
-        return check_password_hash(self.password_hash, password)
-
-    def get_token(self, expires_in=3600):
-        now = datetime.now(timezone.utc)
-        if self.token and self.token_expiration.replace(
-            tzinfo=timezone.utc) > now + timedelta(seconds=60):
-            return self.token
-        self.token = secrets.token_hex(16)
-        self.token_expiration = now + timedelta(seconds=expires_in)
-        db.session.add(self)
-        return self.token
-
-    def revoke_token(self):
-        self.token_expiration = datetime.now(timezone.utc) - timedelta(seconds=1)
-
-    @staticmethod
-    def check_token(token):
-        user = db.session.scalar(sa.select(User).where(User.token == token))
-        if user is None or user.token_expiration.replace(
-            tzinfo=timezone.utc) < datetime.now(timezone.utc):
-            return None
-        return user
-
-@login.user_loader
-def load_user(id):
-    return db.session.get(User, int(id))
-
-class Release(db.Model):
     id: so.Mapped[int] = so.mapped_column(primary_key=True)
     name: so.Mapped[str] = so.mapped_column(sa.String(200))
-    length: so.Mapped[Optional[int]] = so.mapped_column(sa.Integer())
-    art: so.Mapped[Optional[str]] = so.mapped_column(sa.String(150))
-    release_type: so.Mapped[Optional[str]] = so.mapped_column(sa.String(100))
-    label: so.Mapped[Optional[str]] = so.mapped_column(sa.String(100))
-    year:  so.Mapped[Optional[int]] = so.mapped_column(sa.Integer())
-    mbid: so.Mapped[Optional[str]] = so.mapped_column(sa.String(36), index=True, unique=True)
+    length: so.Mapped[int | None] = so.mapped_column(sa.Integer())
+    art: so.Mapped[str | None] = so.mapped_column(sa.String(150))
+    release_type: so.Mapped[str | None] = so.mapped_column(sa.String(100))
+    label: so.Mapped[str | None] = so.mapped_column(sa.String(100))
+    year: so.Mapped[int | None] = so.mapped_column(sa.Integer())
+    release_group_mbid: so.Mapped[str | None] = so.mapped_column(
+        sa.String(36), index=True, unique=True
+    )
+
+    band_id: so.Mapped[int] = so.mapped_column(
+        sa.ForeignKey("band.id", ondelete="CASCADE"), index=True
+    )
+
+    band: so.Mapped["Band"] = so.relationship(back_populates="releases")
+    tracks: so.Mapped[list["Track"]] = so.relationship(
+        back_populates="release",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+    )
 
 
-    band_id: so.Mapped[int] = so.mapped_column(sa.ForeignKey(Band.id), index=True)
+class Track(TimestampMixin, Base):
+    __tablename__ = "track"
 
-    band: so.Mapped[Band] = so.relationship(back_populates='releases')
-
-    tracks: so.WriteOnlyMapped['Track'] = so.relationship(back_populates='release', passive_deletes=True)
-
-    reviews: so.WriteOnlyMapped['Review'] = so.relationship(back_populates='release', passive_deletes=True)
-
-    #TODO hacky way to do this i think
-    #for some reason sa func avg docs are bad and online examples are also, find better way at some point
-    def avg_review_score(self):
-        reviews = db.session.scalars(self.reviews.select()).all()
-        review_count = len(reviews)
-        if review_count == 0:
-            return 0  # or None, depending on how you want to handle this case
-        review_scores = [review.score for review in reviews]
-        avg_review = sum(review_scores) / review_count
-        return avg_review
-
-    def reviews_count(self):
-        query = sa.select(sa.func.count()).select_from(
-            self.reviews.select().subquery())
-        return db.session.scalar(query)
-
-    def as_dict(self):
-        return {c.name: getattr(self, c.name) for c in self.__table__.columns}
-
-class Track(db.Model):
     id: so.Mapped[int] = so.mapped_column(primary_key=True)
     name: so.Mapped[str] = so.mapped_column(sa.String(100))
     track_number: so.Mapped[int] = so.mapped_column(sa.Integer())
-    length: so.Mapped[Optional[int]] = so.mapped_column(sa.Integer())
-    lyrics: so.Mapped[Optional[str]] = so.mapped_column(sa.String(256))
-    mbid: so.Mapped[Optional[str]] = so.mapped_column(sa.String(36), index=True, unique=True)
-    position: so.Mapped[Optional[int]] = so.mapped_column(sa.Integer())
+    length: so.Mapped[int | None] = so.mapped_column(sa.Integer())
+    lyrics: so.Mapped[str | None] = so.mapped_column(sa.String(256))
+    mbid: so.Mapped[str | None] = so.mapped_column(sa.String(36), index=True, unique=True)
+    position: so.Mapped[int | None] = so.mapped_column(sa.Integer())
 
-    release_id: so.Mapped[int] = so.mapped_column(sa.ForeignKey(Release.id), index=True)
+    # Column/attribute kept as release_id/release so the API is unchanged.
+    release_id: so.Mapped[int] = so.mapped_column(
+        sa.ForeignKey("album.id", ondelete="CASCADE"), index=True
+    )
 
-    release: so.Mapped[Release] = so.relationship(back_populates='tracks')
+    release: so.Mapped["Album"] = so.relationship(back_populates="tracks")
 
-    def as_dict(self):
-        return {c.name: getattr(self, c.name) for c in self.__table__.columns}
 
-class Review(db.Model):
+class Member(TimestampMixin, Base):
+    __tablename__ = "member"
+
     id: so.Mapped[int] = so.mapped_column(primary_key=True)
-    score: so.Mapped[int] = so.mapped_column(sa.Integer())
-    review_text: so.Mapped[str] = so.mapped_column(sa.String(500))
+    name: so.Mapped[str] = so.mapped_column(sa.String(150), index=True)
+    mbid: so.Mapped[str | None] = so.mapped_column(sa.String(36), index=True, unique=True)
 
-    release_id: so.Mapped[int] = so.mapped_column(sa.ForeignKey(Release.id), index=True)
+    band_links: so.Mapped[list["BandMember"]] = so.relationship(
+        back_populates="member",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+    )
 
-    release: so.Mapped[Release] = so.relationship(back_populates='reviews')
 
-    user_id: so.Mapped[int] = so.mapped_column(sa.ForeignKey(User.id), index=True)
+class BandMember(TimestampMixin, Base):
+    """Association between a Band and a Member, carrying the member's role."""
 
-    author: so.Mapped[User] = so.relationship(back_populates='reviews')
+    __tablename__ = "band_member"
 
-    def as_dict(self):
-        return {c.name: getattr(self, c.name) for c in self.__table__.columns}
+    band_id: so.Mapped[int] = so.mapped_column(
+        sa.ForeignKey("band.id", ondelete="CASCADE"), primary_key=True
+    )
+    member_id: so.Mapped[int] = so.mapped_column(
+        sa.ForeignKey("member.id", ondelete="CASCADE"), primary_key=True
+    )
+    role: so.Mapped[str | None] = so.mapped_column(sa.String(100))
+
+    band: so.Mapped["Band"] = so.relationship(back_populates="members")
+    member: so.Mapped["Member"] = so.relationship(back_populates="band_links")
+
+    @property
+    def name(self) -> str:
+        # Lets the {name, role} response schema validate straight off the link.
+        return self.member.name

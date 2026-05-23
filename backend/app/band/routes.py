@@ -1,147 +1,93 @@
-from flask import current_app, url_for, request, redirect, flash, jsonify
 import sqlalchemy as sa
-from app import db
-from app.models import Band, Release
-from app.band import bp
-import json
+from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy.orm import Session, selectinload
 
-import musicbrainzngs
+from app import schemas
+from app.database import get_db
+from app.models import Band, BandMember
+from app.services import musicbrainz
+from app.settings import settings
 
-musicbrainzngs.set_useragent("Hardchives","0.1","mrucoding@gmail.com")
-musicbrainzngs.set_rate_limit(limit_or_interval=1.0, new_requests=1)
+router = APIRouter()
 
-#TODO general form validation
 
-@bp.route('/')
-@bp.route('/index')
-def get_all():
-    page = request.args.get('page', 1, type=int)
-    query = sa.select(Band)
-    bands = db.paginate(query, page=page, per_page=current_app.config['BANDS_PER_PAGE'], error_out=False)
-    next_url = url_for('band.get_all', page=bands.next_num) if bands.has_next else None
-    prev_url = url_for('band.get_all', page=bands.prev_num) if bands.has_prev else None
+@router.get("/", response_model=schemas.BandList)
+@router.get("/index", response_model=schemas.BandList, include_in_schema=False)
+def get_all(
+    page: int = Query(1, ge=1),
+    db: Session = Depends(get_db),
+):
+    per_page = settings.bands_per_page
+    total = db.scalar(sa.select(sa.func.count()).select_from(Band))
+    bands = db.scalars(
+        sa.select(Band).order_by(Band.name).offset((page - 1) * per_page).limit(per_page)
+    ).all()
 
-    #TODO i dont like this but i think this is how it has to be bc im not passing response to render_template...
-    band_list = []
-    for band in bands.items:
-        band_list.append(band.as_dict())
-    return jsonify({'bands': band_list, 'next': next_url, 'prev': prev_url})
-
-@bp.route('/new', methods=['POST',])
-# @login_required
-def create():
-    json_data = request.get_json()
-    name = json_data['name']
-    status = json_data['status']
-    band_picture = json_data['band_picture']
-    location = json_data['location']
-    country = json_data['country']
-    label = json_data['label']
-
-    band = Band(
-        name=name,
-        status=status,
-        band_picture=band_picture,
-        location=location,
-        country=country,
-        label=label
+    has_next = page * per_page < total
+    return schemas.BandList(
+        bands=[schemas.BandListItem.model_validate(b) for b in bands],
+        next=page + 1 if has_next else None,
+        prev=page - 1 if page > 1 else None,
     )
-    db.session.add(band)
-    db.session.commit()
 
-    #TODO what return on successful create?
-    return jsonify({ "message": 'Band created', 'id': band.id }), 200
 
-@bp.route('/<id>', methods=['GET',])
-def get(id):
-    band = db.first_or_404(sa.select(Band).where(Band.id == id))
-    releases = db.session.execute(band.releases.select()).scalars()
-    release_list = []
+@router.post("/new")
+def create(payload: schemas.BandCreate, db: Session = Depends(get_db)):
+    band = Band(**payload.model_dump())
+    db.add(band)
+    db.commit()
+    return {"message": "Band created", "id": band.id}
 
-    for release in releases:
-        review_count = release.reviews_count()
-        avg_review = release.avg_review_score()
-        release_list.append({
-            **release.as_dict(), # spread attrs
-            'review_count': review_count,
-            'avg_review': avg_review
-        })
 
-    return jsonify({
-        **band.as_dict(),
-        'releases': release_list
-    })
-
-@bp.route('/<id>/update', methods=['POST',])
-# @login_required
-def update(id):
-    band = db.first_or_404(sa.select(Band).where(Band.id == id))
-    json_data = request.get_json()
-    band.name = json_data['name']
-    band.status = json_data['status']
-    band.band_picture = json_data['band_picture']
-    band.location = json_data['location']
-    band.country = json_data['country']
-    db.session.commit()
-    #TODO what return on successful update?
-    return 'band updated'
-
-@bp.route('/<id>/delete', methods=['DELETE',])
-# @login_required
-def delete(id):
-    band = db.first_or_404(sa.select(Band).where(Band.id == id))
-    db.session.delete(band)
-    db.session.commit()
-    #TODO what return on successful delete?
-    return 'band deleted'
-
-@bp.route('/search', methods=['GET'])
-def search_artist():
-    name = request.args.get('name')
-    # hardcore = request.args.get('hardcore', '').lower() in ['1', 'true']
-    if not name:
-        return jsonify({'error': "Missing required 'name' parameter"}), 400
-
-    query = f'artist:"{name}"'
-    # if hardcore:
-    query = f'tag:hardcore-punk AND {query}'
-
+@router.get("/search")
+def search_artist(name: str = Query(...)):
     try:
-        result = musicbrainzngs.search_artists(query=query, limit=10)
-    except musicbrainzngs.WebServiceError as e:
-        return jsonify({'error': 'MusicBrainz API error', 'details': str(e)}), 503
+        return musicbrainz.search_hardcore_artists(name)
+    except musicbrainz.WebServiceError as e:
+        raise HTTPException(status_code=503, detail=f"MusicBrainz API error: {e}") from e
 
-    return jsonify(result)
 
-@bp.route('/search_releases', methods=['GET'])
-def search_releases():
-    name = request.args.get('name')
-    if not name:
-        return jsonify({'error': "Missing required 'name' parameter"}), 400
+@router.get("/search_releases")
+def search_releases(mbid: str = Query(...)):
+    try:
+        return musicbrainz.get_releases_by_artist_id(mbid)
+    except LookupError as e:
+        raise HTTPException(status_code=404, detail="Band not found") from e
+    except musicbrainz.WebServiceError as e:
+        raise HTTPException(status_code=503, detail=f"MusicBrainz API error: {e}") from e
 
-    # 1. Find the artist
-    artist_result = musicbrainzngs.search_artists(query=f'artist:"{name}"', limit=1)
-    artists = artist_result.get('artist-list', [])
-    if not artists:
-        return jsonify({'error': 'Band not found'}), 404
 
-    mbid = artists[0]['id']
-
-    # 2. Fetch tags and determine hardcore status
-    artist_info = musicbrainzngs.get_artist_by_id(mbid, includes=['tags'])
-    tags = [t['name'].lower() for t in artist_info['artist'].get('tag-list', [])]
-    allowed = {'hardcore-punk', 'hardcore', 'punk', 'punk rock', 'post-hardcore'}
-    is_not_hc = not any(g in tags for g in allowed)
-
-    # 3. Browse all releases for this artist
-    releases_response = musicbrainzngs.browse_releases(
-        artist=mbid,
-        includes=['release-groups'],
-        limit=100
+@router.get("/{id}", response_model=schemas.BandDetail)
+def get(id: int, db: Session = Depends(get_db)):
+    band = db.scalar(
+        sa.select(Band)
+        .options(
+            selectinload(Band.releases),
+            selectinload(Band.members).selectinload(BandMember.member),
+        )
+        .where(Band.id == id)
     )
+    if band is None:
+        raise HTTPException(status_code=404, detail="Band not found")
+    return band
 
-    # 4. Return releases plus flag
-    return jsonify({
-        'isNotHardcore': is_not_hc,
-        'releases': releases_response.get('release-list', [])
-    })
+
+@router.post("/{id}/update")
+def update(id: int, payload: schemas.BandCreate, db: Session = Depends(get_db)):
+    band = db.get(Band, id)
+    if band is None:
+        raise HTTPException(status_code=404, detail="Band not found")
+    for field, value in payload.model_dump().items():
+        setattr(band, field, value)
+    db.commit()
+    return "band updated"
+
+
+@router.delete("/{id}/delete")
+def delete(id: int, db: Session = Depends(get_db)):
+    band = db.get(Band, id)
+    if band is None:
+        raise HTTPException(status_code=404, detail="Band not found")
+    db.delete(band)
+    db.commit()
+    return "band deleted"

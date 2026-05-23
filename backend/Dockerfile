@@ -39,23 +39,17 @@ RUN apt-get update \
 # Copy only requirements first to leverage Docker layer caching
 COPY requirements.txt ./
 
-# Install Python deps in one shot (no cache) + your extras
+# Install Python deps in one shot (no cache).
+# Postgres driver (psycopg2-binary) and the ASGI server (uvicorn) are pinned
+# in requirements.txt.
 RUN pip install --no-cache-dir --upgrade pip \
-    && pip install --no-cache-dir \
-        -r requirements.txt \
-        gunicorn \
-        pymysql \
-        cryptography
+    && pip install --no-cache-dir -r requirements.txt
 
 # Copy the rest of your application code
 COPY app/        ./app/
 COPY migrations/ ./migrations/
-COPY hc_archives_back.py config.py boot.sh seed_bands_with_blocklist.py generate_blocklist_from_releases.py seed_tracks.py ./
-
-RUN mkdir -p /app/data \
-    && chmod 755 /app/data
-
-VOLUME ["/app/data"]
+COPY seed/       ./seed/
+COPY boot.sh ./
 
 # Make your startup script executable
 RUN chmod +x boot.sh
@@ -66,8 +60,6 @@ RUN useradd --create-home appuser \
 USER appuser
 
 # Environment variables
-ENV FLASK_APP=hc_archives_back:create_app
-ENV FLASK_ENV=production
 ENV PYTHONUNBUFFERED=1
 
 # Expose the port your app listens on

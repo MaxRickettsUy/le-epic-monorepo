@@ -1,0 +1,32 @@
+[tool.ruff]
+# Matches the Docker base image (python:3.11-slim).
+target-version = "py311"
+line-length = 100
+# Alembic generates these; don't lint/format machine-written migrations.
+extend-exclude = ["migrations/versions"]
+
+[tool.ruff.lint]
+# Standard set: pyflakes (F), pycodestyle errors/warnings (E/W), import
+# sorting (I), pyupgrade (UP), and flake8-bugbear (B).
+select = ["E", "F", "W", "I", "UP", "B"]
+
+[tool.ruff.lint.flake8-bugbear]
+# FastAPI uses callables as argument defaults by design (Depends/Query/etc.),
+# so B008 should not flag them.
+extend-immutable-calls = [
+    "fastapi.Depends",
+    "fastapi.Query",
+    "fastapi.Path",
+    "fastapi.Body",
+    "fastapi.Header",
+    "fastapi.Cookie",
+]
+
+[tool.ruff.lint.per-file-ignores]
+# The seed-test fixture embeds MusicBrainz DDL as long string literals that
+# don't benefit from wrapping.
+"tests/test_seed.py" = ["E501"]
+
+[tool.ruff.format]
+# Defaults (double quotes, trailing commas) — explicit for clarity.
+quote-style = "double"

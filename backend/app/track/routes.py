@@ -1,50 +1,53 @@
-from flask import current_app, url_for, request, redirect, flash,jsonify
-import sqlalchemy as sa
-from app import db
-from app.models import Track, Release
-from app.track import bp
-import json
+from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy.orm import Session
 
-#TODO bulk create tracks
-@bp.route('/new', methods=['POST',])
-# @login_required
-def create():
-    release_id = request.args.get('release', 0, type=int)
-    release = db.first_or_404(sa.select(Release).where(Release.id == release_id))
+from app import schemas
+from app.database import get_db
+from app.models import Album, Track
 
-    json_data = request.get_json()
-    name = json_data['name']
-    track_number = json_data['track_number']
-    length = json_data['length']
-    lyrics = json_data['lyrics']
+router = APIRouter()
 
-    track = Track(name=name,track_number=track_number,length=length,lyrics=lyrics,release=release)
-    db.session.add(track)
-    db.session.commit()
 
-    return 'track created'
+@router.post("/new")
+def create(
+    payload: schemas.TrackCreate,
+    release: int = Query(..., description="Release id to attach the track to"),
+    db: Session = Depends(get_db),
+):
+    release_row = db.get(Album, release)
+    if release_row is None:
+        raise HTTPException(status_code=404, detail="Release not found")
 
-@bp.route('/<id>', methods=['GET',])
-def get(id):
-    track = db.first_or_404(sa.select(Track).where(Track.id == id))
-    return jsonify({'track': track.as_dict()})
+    track = Track(release=release_row, **payload.model_dump())
+    db.add(track)
+    db.commit()
+    return {"message": "track created", "id": track.id}
 
-@bp.route('/<id>/update', methods=['POST',])
-# @login_required
-def update(id):
-    track = db.first_or_404(sa.select(Track).where(Track.id == id))
-    json_data = request.get_json()
-    track.name = json_data['name']
-    track.track_number = json_data['track_number']
-    track.length = json_data['length']
-    track.lyrics = json_data['lyrics']
-    db.session.commit()
-    return 'track updated'
 
-@bp.route('/<id>/delete', methods=['DELETE',])
-# @login_required
-def delete(id):
-    track = db.first_or_404(sa.select(Track).where(Track.id == id))
-    db.session.delete(track)
-    db.session.commit()
-    return 'track deleted'
+@router.get("/{id}", response_model=schemas.TrackOut)
+def get(id: int, db: Session = Depends(get_db)):
+    track = db.get(Track, id)
+    if track is None:
+        raise HTTPException(status_code=404, detail="Track not found")
+    return track
+
+
+@router.post("/{id}/update")
+def update(id: int, payload: schemas.TrackCreate, db: Session = Depends(get_db)):
+    track = db.get(Track, id)
+    if track is None:
+        raise HTTPException(status_code=404, detail="Track not found")
+    for field, value in payload.model_dump().items():
+        setattr(track, field, value)
+    db.commit()
+    return "track updated"
+
+
+@router.delete("/{id}/delete")
+def delete(id: int, db: Session = Depends(get_db)):
+    track = db.get(Track, id)
+    if track is None:
+        raise HTTPException(status_code=404, detail="Track not found")
+    db.delete(track)
+    db.commit()
+    return "track deleted"

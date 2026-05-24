@@ -1,55 +1,29 @@
-'use client'
-
 import { Separator } from "@/components/ui/separator";
 import Link from "next/link";
-import { useEffect, useState } from "react";
-import { Band } from "@/lib/types";
-import { useRouter } from "next/navigation";
+import { listBands } from "@/lib/api";
 import { Header } from "@/components/ui/header";
 import { Button } from "@/components/ui/button";
 
-const BandLink = (props: {
-  name: string;
-  id: string;
-}) => (
-  <Link
-    className="hover:underline"
-    href={{
-      pathname: "/band",
-      query: { id: props.id }
-    }}
-  >
-    <Button variant="ghost">{props.name}</Button>
-  </Link>
-)
+// Catalog data is served from the backend at request time; don't prerender at build.
+export const dynamic = "force-dynamic";
 
-export default function Home() {
-  const [bands, setBands] = useState<Band[]>([]);
-
-  useEffect(() => {
-    const fetchData = async () => {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URI}:${process.env.NEXT_PUBLIC_API_PORT}/band/`);
-
-      return response.json();
-    }
-
-    fetchData().then((res) => setBands(res.bands));
-  }, [])
+export default async function Home() {
+  const { bands } = await listBands();
 
   return (
-    <main className="py-[1rem] flex-col">
+    <main className="flex flex-col py-[1rem]">
       <Header />
-      <div className="py-[1rem] w-full">
+      <div className="w-full py-[1rem]">
         <Separator />
       </div>
-      <div className="flex flex-col md:flex-row lg:flex-row xl:flex-row gap-[8] p-[1rem]">
+      <div className="flex flex-col gap-2 p-[1rem] md:flex-row">
         <div className="flex flex-col">
-          { bands.length > 0 && bands.map((b, i) => (
-            <BandLink
-              key={i}
-              id={`${b.id}`}
-              name={b.name}
-            />
+          {bands.map((band) => (
+            <Button key={band.id} variant="ghost" asChild>
+              <Link className="hover:underline" href={`/band/${band.id}`}>
+                {band.name}
+              </Link>
+            </Button>
           ))}
         </div>
       </div>

@@ -1,12 +1,11 @@
 import {
   Breadcrumb,
-  BreadcrumbEllipsis,
   BreadcrumbItem,
   BreadcrumbLink,
   BreadcrumbList,
   BreadcrumbPage,
   BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb"
+} from "@/components/ui/breadcrumb";
 import Link from "next/link";
 
 interface Props {
@@ -24,16 +23,7 @@ export function AlbumBreadcrumbs(props: Props) {
         </BreadcrumbItem>
         <BreadcrumbSeparator />
         <BreadcrumbLink asChild>
-          <Link
-            href={{
-              pathname: '/band',
-              query: {
-                id: props.id
-              }
-            }}
-          >
-            {props.band}
-          </Link>
+          <Link href={`/band/${props.id}`}>{props.band}</Link>
         </BreadcrumbLink>
         <BreadcrumbSeparator />
         <BreadcrumbItem>
@@ -41,5 +31,5 @@ export function AlbumBreadcrumbs(props: Props) {
         </BreadcrumbItem>
       </BreadcrumbList>
     </Breadcrumb>
-  )
+  );
 }

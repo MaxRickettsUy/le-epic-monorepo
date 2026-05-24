@@ -1,16 +1,11 @@
 import Link from "next/link";
-import { Avatar, AvatarFallback } from "./avatar"
-import { Button } from "./button"
+import { Avatar, AvatarFallback } from "./avatar";
+import { Button } from "./button";
 import { Input } from "./input";
-import { useRouter } from "next/navigation";
 
-const SearchInput = () => (
-  <Input type="search" placeholder="Search..." />
-);
+const SearchInput = () => <Input type="search" placeholder="Search..." />;
 
 export const Header = () => {
-  const router = useRouter();
-
   return (
     <div className="flex flex-row gap-[1rem] px-[1rem]">
       <Link href={"/"}>
@@ -19,8 +14,8 @@ export const Header = () => {
         </Avatar>
       </Link>
       <div className="ml-auto flex flex-row gap-[1rem]">
-        <Button onClick={() => router.push("/create/band")}>
-          Add Band
+        <Button asChild>
+          <Link href="/create/band">Add Band</Link>
         </Button>
         <SearchInput />
       </div>
@@ -28,5 +23,5 @@ export const Header = () => {
         <AvatarFallback>U</AvatarFallback>
       </Avatar>
     </div>
-  )
-}
+  );
+};

@@ -1,18 +1,10 @@
-import { Band } from "@/lib/types";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "./ui/card";
-import Image from "next/image";
-import { faker } from "@faker-js/faker";
 import Link from "next/link";
 import { Button } from "./ui/button";
 
-export const TopSection = (props: {
-  id: number;
-  name: string;
-}) => {
-  console.log(props)
-
+export const TopSection = (props: { id: number; name: string; picture?: string | null }) => {
   return (
-    <div className="flex flex-col md:flex-row items-center md:items-start gap-[1rem] justify-between border border-red-500">
+    <div className="flex flex-col items-center justify-between gap-[1rem] md:flex-row md:items-start">
       <div className="flex flex-col gap-[1rem]">
         <Card>
           <CardHeader>
@@ -20,31 +12,26 @@ export const TopSection = (props: {
             <CardDescription>Insert City Hardcore</CardDescription>
           </CardHeader>
           <CardContent>
-            {props.name && (
-              <div className="relative">
-                <Image
-                  className="lg:ml-auto xl:ml-auto rounded-sm"
-                  alt={props.name}
-                  src={faker.image.urlLoremFlickr({ category: 'people' })}
-                  width={250}
-                  height={250}
-                  priority
-                />
-              </div>
-            )}
+            {/* Real artwork is wired up in Phase 4 (next/image + remote hosts). */}
+            <div
+              className="flex h-[250px] w-[250px] items-center justify-center rounded-sm bg-muted text-4xl font-bold text-muted-foreground"
+              aria-label={props.name}
+            >
+              {props.name.charAt(0).toUpperCase()}
+            </div>
           </CardContent>
           <CardFooter>
-            <div className="flex flex-col gap-1 w-full">
-              <Link href={{ pathname: "/edit/band", query: { id: props.id } }}>
-                <Button className="w-full">Edit Band</Button>
-              </Link>
-              <Link href={{ pathname: "/create/release", query: { band_id: props.id } }}>
-                <Button className="w-full">Add Release</Button>
-              </Link>
+            <div className="flex w-full flex-col gap-1">
+              <Button className="w-full" asChild>
+                <Link href={`/edit/band/${props.id}`}>Edit Band</Link>
+              </Button>
+              <Button className="w-full" asChild>
+                <Link href={`/create/release/${props.id}`}>Add Release</Link>
+              </Button>
             </div>
           </CardFooter>
         </Card>
       </div>
     </div>
   );
-}
+};

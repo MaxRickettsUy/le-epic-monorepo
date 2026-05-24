@@ -1,4 +1,4 @@
-export { ApiError } from "./client";
+export { ApiError, ApiParseError } from "./client";
 export {
   listBands,
   getBand,

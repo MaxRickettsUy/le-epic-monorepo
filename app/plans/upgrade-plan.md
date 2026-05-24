@@ -46,11 +46,11 @@ Goal: use App Router primitives properly. Move data fetching off the client.
 
 Deliverables: shareable URLs are stable, SSR works, network panel shows server-rendered HTML.
 
-## Phase 2 — API & persistence (2–4 days, pick one path)
+## Phase 2 — API & persistence (2–4 days, pick one path) — ✅ DONE (Option A)
 
-**Decision needed:** does this app continue to depend on an external backend, or should Next own the data?
+**Decision:** Keep the external FastAPI + Postgres backend (`backend/`). It was deliberately resurrected and Phase 1 already built the `lib/api/` layer against it, so Next stays a pure client and does not own data.
 
-- **Option A — Keep external backend.** Delete `app/api/**` stubs. Document the contract (`docs/api-contract.md`). Add zod schemas in `lib/schemas/` and validate every response at the boundary; surface parse failures via `error.tsx`.
+- **Option A — Keep external backend.** ✅ `app/api/**` stubs already deleted. Contract documented in `docs/api-contract.md`. Zod schemas added in `lib/schemas/` (now the single source of truth — `lib/types.ts` re-exports the inferred types). Every response is validated at the boundary in `lib/api/client.ts`; a 2xx mismatch throws `ApiParseError`, which surfaces via the existing `error.tsx` boundaries.
 - **Option B — Own the data in Next + Postgres (recommended for a self-contained app).**
   - Add Supabase (Postgres + RLS) or Drizzle + Neon. Supabase fits well given the available MCP tooling and shadcn/Radix stack.
   - Tables: `bands`, `releases`, `members`, `tracks`, `reviews`, `users`. Snake_case columns already match the TS types (`band_picture`, `band_id`, etc.).
@@ -113,7 +113,7 @@ A pragmatic order if you want incremental value: **Phase 0 → 1 → 3 → 2 →
 
 ## Open questions for the owner
 
-1. Is there a real backend at `:8000` to keep (Option A), or should we own data in Next (Option B)?
+1. ~~Is there a real backend at `:8000` to keep (Option A), or should we own data in Next (Option B)?~~ **Resolved:** Option A chosen (see Phase 2). The contract is finalized in `docs/api-contract.md` and the canonical zod schemas live in `lib/schemas/` (re-exported as inferred types via `lib/types.ts`).
 2. Is this meant to be public-read / auth-gated-write (Metal Archives style), or fully private?
 3. Where will band/release art be hosted? Needed to configure `next/image` remote patterns.
 4. Target deployment (Vercel? self-host?) — affects edge vs. node runtime choices.

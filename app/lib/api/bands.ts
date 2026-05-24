@@ -1,4 +1,6 @@
-import type { Band, BandList, BandStatus } from "@/lib/types";
+import { z } from "zod";
+import type { Band, BandList, BandStatus, MutationResult } from "@/lib/types";
+import { bandListSchema, bandSchema, mutationResultSchema } from "@/lib/schemas";
 import { apiFetch, apiFetchOrNull } from "./client";
 
 export interface BandCreateInput {
@@ -10,30 +12,27 @@ export interface BandCreateInput {
   band_picture?: string | null;
 }
 
-export interface MutationResult {
-  message: string;
-  id: number;
-}
+export type { MutationResult };
 
 /** Paginated list of bands (`GET /band/`). */
 export function listBands(page = 1): Promise<BandList> {
-  return apiFetch<BandList>(`/band/?page=${page}`, { next: { revalidate: 60 } });
+  return apiFetch(`/band/?page=${page}`, bandListSchema, { next: { revalidate: 60 } });
 }
 
 /** Band detail (`GET /band/{id}`); `null` when the band does not exist. */
 export function getBand(id: number): Promise<Band | null> {
-  return apiFetchOrNull<Band>(`/band/${id}`, { next: { revalidate: 60 } });
+  return apiFetchOrNull(`/band/${id}`, bandSchema, { next: { revalidate: 60 } });
 }
 
 export function createBand(input: BandCreateInput): Promise<MutationResult> {
-  return apiFetch<MutationResult>(`/band/new`, {
+  return apiFetch(`/band/new`, mutationResultSchema, {
     method: "POST",
     body: JSON.stringify(input),
   });
 }
 
 export function updateBand(id: number, input: BandCreateInput): Promise<string> {
-  return apiFetch<string>(`/band/${id}/update`, {
+  return apiFetch(`/band/${id}/update`, z.string(), {
     method: "POST",
     body: JSON.stringify(input),
   });

@@ -1,6 +1,7 @@
-import type { ReleaseDetail } from "@/lib/types";
+import { z } from "zod";
+import type { MutationResult, ReleaseDetail } from "@/lib/types";
+import { mutationResultSchema, releaseDetailSchema } from "@/lib/schemas";
 import { apiFetch, apiFetchOrNull } from "./client";
-import type { MutationResult } from "./bands";
 
 export interface ReleaseCreateInput {
   name: string;
@@ -13,18 +14,18 @@ export interface ReleaseCreateInput {
 
 /** Release detail (`GET /release/{id}`); `null` when the release does not exist. */
 export function getRelease(id: number): Promise<ReleaseDetail | null> {
-  return apiFetchOrNull<ReleaseDetail>(`/release/${id}`, { next: { revalidate: 60 } });
+  return apiFetchOrNull(`/release/${id}`, releaseDetailSchema, { next: { revalidate: 60 } });
 }
 
 export function createRelease(bandId: number, input: ReleaseCreateInput): Promise<MutationResult> {
-  return apiFetch<MutationResult>(`/release/new?band=${bandId}`, {
+  return apiFetch(`/release/new?band=${bandId}`, mutationResultSchema, {
     method: "POST",
     body: JSON.stringify(input),
   });
 }
 
 export function updateRelease(id: number, input: ReleaseCreateInput): Promise<string> {
-  return apiFetch<string>(`/release/${id}/update`, {
+  return apiFetch(`/release/${id}/update`, z.string(), {
     method: "POST",
     body: JSON.stringify(input),
   });

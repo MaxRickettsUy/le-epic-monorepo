@@ -78,7 +78,7 @@ export const BandForm = ({
                   type="text"
                   placeholder="Name"
                 />
-                <FieldError meta={field.state.meta} />
+                <FieldError meta={field.state.meta} show={form.state.submissionAttempts > 0} />
               </div>
             )}
           </form.Field>
@@ -99,7 +99,7 @@ export const BandForm = ({
                     ))}
                   </SelectContent>
                 </Select>
-                <FieldError meta={field.state.meta} />
+                <FieldError meta={field.state.meta} show={form.state.submissionAttempts > 0} />
               </div>
             )}
           </form.Field>
@@ -117,7 +117,7 @@ export const BandForm = ({
                   type="text"
                   placeholder="City, State"
                 />
-                <FieldError meta={field.state.meta} />
+                <FieldError meta={field.state.meta} show={form.state.submissionAttempts > 0} />
               </div>
             )}
           </form.Field>
@@ -135,7 +135,7 @@ export const BandForm = ({
                   type="text"
                   placeholder="Label"
                 />
-                <FieldError meta={field.state.meta} />
+                <FieldError meta={field.state.meta} show={form.state.submissionAttempts > 0} />
               </div>
             )}
           </form.Field>
@@ -159,7 +159,7 @@ export const BandForm = ({
                     ))}
                   </SelectContent>
                 </Select>
-                <FieldError meta={field.state.meta} />
+                <FieldError meta={field.state.meta} show={form.state.submissionAttempts > 0} />
               </div>
             )}
           </form.Field>

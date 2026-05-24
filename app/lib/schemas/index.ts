@@ -98,7 +98,7 @@ export const mutationResultSchema = z.object({
 export const bandFormSchema = z.object({
   name: z.string().trim().min(1, "Name is required"),
   status: bandStatusSchema,
-  country: z.string().min(1, "Country is required"),
+  country: z.string().trim().min(1, "Country is required"),
   location: z.string().trim(),
   label: z.string().trim(),
   band_picture: z.string().nullish(),

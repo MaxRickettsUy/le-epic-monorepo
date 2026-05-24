@@ -29,15 +29,17 @@ export const ReleaseForm = ({
   defaultValues?: Partial<ReleaseFormValues>;
   onSubmit: (input: ReleaseFormValues) => Promise<void>;
 }) => {
+  const initialValues: ReleaseFormValues = {
+    name: defaultValues?.name ?? "",
+    label: defaultValues?.label ?? null,
+    release_type: defaultValues?.release_type ?? null,
+    year: defaultValues?.year ?? null,
+    length: defaultValues?.length ?? null,
+    art: defaultValues?.art ?? null,
+  };
+
   const form = useForm({
-    defaultValues: {
-      name: defaultValues?.name ?? "",
-      label: defaultValues?.label ?? null,
-      release_type: defaultValues?.release_type ?? null,
-      year: defaultValues?.year ?? null,
-      length: defaultValues?.length ?? null,
-      art: defaultValues?.art ?? null,
-    } as ReleaseFormValues,
+    defaultValues: initialValues,
     validators: { onChange: releaseFormSchema },
     onSubmit: async ({ value }) => {
       await onSubmit(value);
@@ -74,7 +76,7 @@ export const ReleaseForm = ({
                   type="text"
                   placeholder="Name"
                 />
-                <FieldError meta={field.state.meta} />
+                <FieldError meta={field.state.meta} show={form.state.submissionAttempts > 0} />
               </div>
             )}
           </form.Field>
@@ -101,7 +103,7 @@ export const ReleaseForm = ({
                     })}
                   </SelectContent>
                 </Select>
-                <FieldError meta={field.state.meta} />
+                <FieldError meta={field.state.meta} show={form.state.submissionAttempts > 0} />
               </div>
             )}
           </form.Field>
@@ -122,7 +124,7 @@ export const ReleaseForm = ({
                     ))}
                   </SelectContent>
                 </Select>
-                <FieldError meta={field.state.meta} />
+                <FieldError meta={field.state.meta} show={form.state.submissionAttempts > 0} />
               </div>
             )}
           </form.Field>
@@ -140,7 +142,7 @@ export const ReleaseForm = ({
                   type="text"
                   placeholder="Label"
                 />
-                <FieldError meta={field.state.meta} />
+                <FieldError meta={field.state.meta} show={form.state.submissionAttempts > 0} />
               </div>
             )}
           </form.Field>

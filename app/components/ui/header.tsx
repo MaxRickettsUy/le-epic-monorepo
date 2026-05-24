@@ -14,9 +14,9 @@ export const Header = () => {
         </Avatar>
       </Link>
       <div className="ml-auto flex flex-row gap-[1rem]">
-        <Link href="/create/band">
-          <Button>Add Band</Button>
-        </Link>
+        <Button asChild>
+          <Link href="/create/band">Add Band</Link>
+        </Button>
         <SearchInput />
       </div>
       <Avatar>

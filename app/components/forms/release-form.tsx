@@ -39,7 +39,8 @@ export const ReleaseForm = ({
 
   const disabled = pending || form.name.trim() === "";
 
-  const submit = async () => {
+  const submit = async (event: React.FormEvent) => {
+    event.preventDefault();
     if (pending) return;
     setPending(true);
     try {
@@ -56,7 +57,7 @@ export const ReleaseForm = ({
         <Separator />
       </div>
       <div className="flex flex-col gap-[1rem] p-[1rem]">
-        <div className="flex flex-col gap-[1rem]">
+        <form className="flex flex-col gap-[1rem]" onSubmit={submit}>
           <span className="text-4xl">{title}</span>
           <Input
             value={form.name}
@@ -103,10 +104,10 @@ export const ReleaseForm = ({
             type="text"
             placeholder="Label"
           />
-          <Button disabled={disabled} onClick={submit}>
+          <Button type="submit" disabled={disabled}>
             Submit
           </Button>
-        </div>
+        </form>
       </div>
     </main>
   );

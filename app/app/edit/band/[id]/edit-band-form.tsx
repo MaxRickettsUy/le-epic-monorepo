@@ -33,7 +33,8 @@ export const EditBandForm = ({ band }: { band: Band }) => {
 
   const disabled = pending || form.name.trim() === "";
 
-  const onSubmit = async () => {
+  const onSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
     if (pending) return;
     setPending(true);
     try {
@@ -50,7 +51,7 @@ export const EditBandForm = ({ band }: { band: Band }) => {
         <Separator />
       </div>
       <div className="flex flex-col gap-[1rem] p-[1rem]">
-        <div className="flex flex-col gap-[1rem]">
+        <form className="flex flex-col gap-[1rem]" onSubmit={onSubmit}>
           <span className="text-4xl">Edit Band</span>
           <Input
             value={form.name}
@@ -93,10 +94,10 @@ export const EditBandForm = ({ band }: { band: Band }) => {
               <SelectItem value="split-up">Split Up</SelectItem>
             </SelectContent>
           </Select>
-          <Button disabled={disabled} onClick={onSubmit}>
+          <Button type="submit" disabled={disabled}>
             Submit
           </Button>
-        </div>
+        </form>
       </div>
     </main>
   );

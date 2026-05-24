@@ -22,12 +22,12 @@ export const TopSection = (props: { id: number; name: string; picture?: string |
           </CardContent>
           <CardFooter>
             <div className="flex w-full flex-col gap-1">
-              <Link href={`/edit/band/${props.id}`}>
-                <Button className="w-full">Edit Band</Button>
-              </Link>
-              <Link href={`/create/release/${props.id}`}>
-                <Button className="w-full">Add Release</Button>
-              </Link>
+              <Button className="w-full" asChild>
+                <Link href={`/edit/band/${props.id}`}>Edit Band</Link>
+              </Button>
+              <Button className="w-full" asChild>
+                <Link href={`/create/release/${props.id}`}>Add Release</Link>
+              </Button>
             </div>
           </CardFooter>
         </Card>

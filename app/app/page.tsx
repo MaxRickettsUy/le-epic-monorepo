@@ -11,7 +11,7 @@ export default async function Home() {
   const { bands } = await listBands();
 
   return (
-    <main className="flex-col py-[1rem]">
+    <main className="flex flex-col py-[1rem]">
       <Header />
       <div className="w-full py-[1rem]">
         <Separator />

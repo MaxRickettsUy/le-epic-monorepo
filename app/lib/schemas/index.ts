@@ -87,6 +87,35 @@ export const mutationResultSchema = z.object({
   id: z.number(),
 });
 
+// ── Form input schemas ──────────────────────────────────────────────
+// These validate user input in the create/edit forms (react-hook-form +
+// zodResolver). They are deliberately separate from the response schemas
+// above: no server-assigned fields (id, avg_review, …) and stricter
+// required-field rules than the permissive API contract. The inferred
+// types are structurally compatible with `BandCreateInput` /
+// `ReleaseCreateInput` in `lib/api/`, so resolved values submit directly.
+
+export const bandFormSchema = z.object({
+  name: z.string().trim().min(1, "Name is required"),
+  status: bandStatusSchema,
+  country: z.string().min(1, "Country is required"),
+  location: z.string().trim(),
+  label: z.string().trim(),
+  band_picture: z.string().nullish(),
+});
+
+export const releaseFormSchema = z.object({
+  name: z.string().trim().min(1, "Name is required"),
+  year: z.coerce.number().int().min(1900).max(2100).nullish(),
+  release_type: z.string().nullish(),
+  label: z.string().nullish(),
+  length: z.number().nullish(),
+  art: z.string().nullish(),
+});
+
+export type BandFormValues = z.infer<typeof bandFormSchema>;
+export type ReleaseFormValues = z.infer<typeof releaseFormSchema>;
+
 export type BandStatus = z.infer<typeof bandStatusSchema>;
 export type Member = z.infer<typeof memberSchema>;
 export type Track = z.infer<typeof trackSchema>;

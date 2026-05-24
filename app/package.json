@@ -13,24 +13,24 @@
   },
   "dependencies": {
     "@radix-ui/react-avatar": "^1.1.0",
+    "@radix-ui/react-label": "^2.1.8",
     "@radix-ui/react-navigation-menu": "^1.2.0",
     "@radix-ui/react-select": "^2.1.2",
     "@radix-ui/react-separator": "^1.1.0",
     "@radix-ui/react-slot": "^1.1.0",
     "@radix-ui/react-tabs": "^1.1.0",
+    "@tanstack/react-form": "^1.32.0",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.1",
-    "lodash": "^4.17.21",
     "lucide-react": "^0.424.0",
     "next": "^15.5.18",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "tailwind-merge": "^2.4.0",
     "tailwindcss-animate": "^1.0.7",
-    "zod": "^3.23.8"
+    "zod": "^3.25.76"
   },
   "devDependencies": {
-    "@types/lodash": "^4.17.13",
     "@types/node": "^20",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",

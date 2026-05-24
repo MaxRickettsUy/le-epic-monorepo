@@ -60,19 +60,23 @@ Deliverables: shareable URLs are stable, SSR works, network panel shows server-r
 
 Deliverables: one source of truth, typed end-to-end, no client-side fetches to a different origin.
 
-## Phase 3 — Forms & validation (1 day)
+## Phase 3 — Forms & validation (1 day) — ✅ DONE (TanStack Form)
 
-Goal: replace the bespoke `useState + lodash.debounce` pattern with the installed-but-unused zod, plus `react-hook-form`.
+Goal: replace the bespoke `useState` form state with zod validation + a form library.
 
-- Add `react-hook-form` + `@hookform/resolvers`.
-- Define zod schemas for `Band`, `Release`, `Member`, `Track` in `lib/schemas/`.
-- Refactor `app/create/band`, `app/create/release`, `app/edit/band`, `app/edit/release` to use `useForm({ resolver: zodResolver(schema) })`.
-- Submit via Server Actions (Phase 2 Option B) or typed fetch helpers (Option A). Use `useFormStatus` for pending UI; `useFormState` (or RHF) for field errors.
-- Drop the `typing` boolean + debounced submit-disable hack. Validation handles it.
-- Remove `lodash` from `dependencies` once `_.debounce` calls are gone (saves ~70 KB).
-- Bug to fix in pass: `app/create/release/page.tsx` imports `useRouter` from `next/router` (Pages Router) — should be `next/navigation`. Also calls `redirect()` inside a `.then` callback, which won't work; use Server Action redirect or `router.push`.
+**Decision:** Used `@tanstack/react-form` instead of `react-hook-form`/`@hookform/resolvers`. TanStack validates a Standard Schema (zod 3.24+) directly, so no separate resolver package is needed. Bumped `zod` to `^3.25` for Standard Schema support.
 
-Deliverables: typed forms with inline errors, no manual debounce, smaller bundle.
+- ✅ Added `@tanstack/react-form` + `@radix-ui/react-label`.
+- ✅ Added form-input zod schemas (`bandFormSchema`, `releaseFormSchema` + inferred types) to `lib/schemas/index.ts`, kept separate from the response-contract schemas (no server-assigned fields, stricter required rules).
+- ✅ Refactored to TanStack `useForm({ validators: { onChange: schema } })`:
+  - New shared `components/forms/band-form.tsx` used by `app/create/band` and `app/edit/band/[id]`.
+  - Existing shared `components/forms/release-form.tsx` (covers create + edit release) converted off `useState`.
+  - Inline field errors via `components/forms/field-error.tsx` (touched-only); pending/disabled via `form.Subscribe` on `canSubmit`/`isSubmitting`.
+- ✅ Submit still goes through the Phase-1 Server Actions in `app/actions.ts` (Option A typed fetch helpers).
+- ✅ Removed `lodash` + `@types/lodash` from `package.json` (already unused in source after Phase 1).
+- N/A: the `next/router` import bug and `.then`-redirect were already fixed in Phase 1 (release create uses `useParams` + a Server Action).
+
+Deliverables: typed forms with inline errors, no manual form-state plumbing, smaller bundle. CI green (lint, typecheck, build).
 
 ## Phase 4 — UI/UX polish (1–2 days)
 

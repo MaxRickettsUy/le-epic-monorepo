@@ -18,6 +18,28 @@ Open [http://localhost:3000](http://localhost:3000) with your browser to see the
 
 You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 
+## Configuration
+
+Data is fetched server-side from the backend API. Configure its base URL with the
+`API_URL` environment variable (server-only — it is never shipped to the browser).
+Copy `.env.example` to `.env.local` and adjust as needed:
+
+```bash
+cp .env.example .env.local
+```
+
+`API_URL` defaults to `http://127.0.0.1:8000` (the local FastAPI backend in `../backend`).
+
+The typed data layer lives in `lib/api/`; writes go through Server Actions in `app/actions.ts`.
+
+## Scripts
+
+- `npm run dev` — start the dev server
+- `npm run build` / `npm run start` — production build / serve
+- `npm run lint` — ESLint (`next/core-web-vitals` + Prettier)
+- `npm run typecheck` — `tsc --noEmit`
+- `npm run format` / `npm run format:check` — Prettier write / check
+
 This project uses [`next/font`](https://nextjs.org/docs/basic-features/font-optimization) to automatically optimize and load Inter, a custom Google Font.
 
 ## Learn More

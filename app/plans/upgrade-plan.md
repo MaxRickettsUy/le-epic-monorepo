@@ -78,15 +78,15 @@ Goal: replace the bespoke `useState` form state with zod validation + a form lib
 
 Deliverables: typed forms with inline errors, no manual form-state plumbing, smaller bundle. CI green (lint, typecheck, build).
 
-## Phase 4 — UI/UX polish (1–2 days)
+## Phase 4 — UI/UX polish (1–2 days) — ✅ DONE
 
-- Replace `<img>`-style band/release art with `next/image`. Add the real image host(s) to `next.config.mjs` `remotePatterns` (currently only `loremflickr.com`).
-- Build real skeleton components (`components/ui/skeleton.tsx`) for loading states added in Phase 1.
-- Implement the empty tabs on `app/release/[id]` (lineup, reviews, other) or hide them until backed by data.
-- Implement `MemberTable` data path — `app/band/[id]/page.tsx` currently overrides `members: []` after fetch; either remove the tab or wire members through.
-- Implement `app/recent-additions.tsx` and `app/recent-updates.tsx` (they exist but aren't rendered).
-- Dark mode: `tailwind.config.ts` already has `darkMode: ["class"]` and CSS vars are defined; add a `ThemeProvider` (e.g. `next-themes`) and a toggle in `components/ui/header.tsx`.
-- Accessibility audit: focus rings on `Link`/`Button` combos, `alt` text on images, semantic landmarks (`<nav>`, `<main>`).
+- ✅ Replaced the placeholder art `<div>` in `components/TopSection.tsx` with `next/image` (initials placeholder retained as the no-art fallback). Release art now flows through via `release.art`. `next.config.mjs` `remotePatterns` keeps `loremflickr.com` and adds a permissive `https://**` host until the art CDN is finalized (open question #3).
+- ✅ Added `components/ui/skeleton.tsx` and adopted it in the `band/[id]` and `release/[id]` `loading.tsx` (with `aria-busy`).
+- N/A: the empty lineup/reviews/other tabs on `app/release/[id]` were already removed in an earlier phase — only the backed Tracks tab remains.
+- ✅ `MemberTable` data path is wired (`band.members` flows through). Dropped the unbacked "Other Bands" column (no field in the contract) and added an empty state; members are always `[]` in the MVP.
+- N/A: `app/recent-additions.tsx` / `app/recent-updates.tsx` no longer exist (removed in an earlier phase).
+- ✅ Dark mode: added `next-themes`, a `components/theme-provider.tsx` wrapper in `app/layout.tsx` (`attribute="class"`, system default, `suppressHydrationWarning` on `<html>`), and a `components/ui/theme-toggle.tsx` (lucide sun/moon) in the header.
+- ✅ Accessibility: header is now `<header>` + `<nav aria-label="Primary">`; search input has an `sr-only` label; `next/image` has `alt` text and the fallback uses `role="img"` + `aria-label`. `Button`/`Input` already ship `focus-visible` rings.
 
 ## Phase 5 — Auth & authorization (1–2 days, only if Phase 2 Option B)
 

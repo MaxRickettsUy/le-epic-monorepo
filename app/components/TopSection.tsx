@@ -1,5 +1,6 @@
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "./ui/card";
 import Link from "next/link";
+import Image from "next/image";
 import { Button } from "./ui/button";
 
 export const TopSection = (props: { id: number; name: string; picture?: string | null }) => {
@@ -12,13 +13,23 @@ export const TopSection = (props: { id: number; name: string; picture?: string |
             <CardDescription>Insert City Hardcore</CardDescription>
           </CardHeader>
           <CardContent>
-            {/* Real artwork is wired up in Phase 4 (next/image + remote hosts). */}
-            <div
-              className="flex h-[250px] w-[250px] items-center justify-center rounded-sm bg-muted text-4xl font-bold text-muted-foreground"
-              aria-label={props.name}
-            >
-              {props.name.charAt(0).toUpperCase()}
-            </div>
+            {props.picture ? (
+              <Image
+                src={props.picture}
+                alt={`${props.name} artwork`}
+                width={250}
+                height={250}
+                className="h-[250px] w-[250px] rounded-sm object-cover"
+              />
+            ) : (
+              <div
+                className="flex h-[250px] w-[250px] items-center justify-center rounded-sm bg-muted text-4xl font-bold text-muted-foreground"
+                role="img"
+                aria-label={`${props.name} (no artwork)`}
+              >
+                {props.name.charAt(0).toUpperCase()}
+              </div>
+            )}
           </CardContent>
           <CardFooter>
             <div className="flex w-full flex-col gap-1">

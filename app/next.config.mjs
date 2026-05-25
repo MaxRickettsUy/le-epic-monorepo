@@ -10,12 +10,11 @@ const nextConfig = {
         pathname: "/640/**",
       },
       // Band/release art hosts are not yet finalized (see plan open question #3).
-      // Until then, allow any https host so backend-provided URLs render. Tighten
-      // to specific hosts once the art CDN is decided.
-      {
-        protocol: "https",
-        hostname: "**",
-      },
+      // Allow an explicit host via env until the CDN is decided, instead of a
+      // wildcard that would permit any https origin.
+      ...(process.env.NEXT_PUBLIC_ART_HOST
+        ? [{ protocol: "https", hostname: process.env.NEXT_PUBLIC_ART_HOST }]
+        : []),
     ],
   },
   // ...

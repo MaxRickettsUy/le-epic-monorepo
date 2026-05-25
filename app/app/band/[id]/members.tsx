@@ -10,7 +10,9 @@ import type { Member } from "@/lib/types";
 
 export const MemberTable = ({ members }: { members: Member[] }) => {
   if (members.length === 0) {
-    return <p className="p-4 text-sm text-muted-foreground">No members listed for this band yet.</p>;
+    return (
+      <p className="p-4 text-sm text-muted-foreground">No members listed for this band yet.</p>
+    );
   }
 
   return (

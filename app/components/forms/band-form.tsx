@@ -14,33 +14,35 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { Header } from "@/components/ui/header";
 import { FieldError } from "@/components/forms/field-error";
-import { releaseTypes } from "@/lib/const";
-import { releaseFormSchema, type ReleaseFormValues } from "@/lib/schemas";
+import { countries } from "@/lib/const";
+import { bandFormSchema, type BandFormValues } from "@/lib/schemas";
 
-const START_YEAR = 1982;
-const END_YEAR = new Date().getFullYear();
+const statuses: { value: BandFormValues["status"]; label: string }[] = [
+  { value: "active", label: "Active" },
+  { value: "unknown", label: "Unknown" },
+  { value: "on-hold", label: "On Hold" },
+  { value: "split-up", label: "Split Up" },
+];
 
-export const ReleaseForm = ({
+export const BandForm = ({
   title,
   defaultValues,
   onSubmit,
 }: {
   title: string;
-  defaultValues?: Partial<ReleaseFormValues>;
-  onSubmit: (input: ReleaseFormValues) => Promise<void>;
+  defaultValues?: Partial<BandFormValues>;
+  onSubmit: (input: BandFormValues) => Promise<void>;
 }) => {
-  const initialValues: ReleaseFormValues = {
-    name: defaultValues?.name ?? "",
-    label: defaultValues?.label ?? null,
-    release_type: defaultValues?.release_type ?? null,
-    year: defaultValues?.year ?? null,
-    length: defaultValues?.length ?? null,
-    art: defaultValues?.art ?? null,
-  };
-
   const form = useForm({
-    defaultValues: initialValues,
-    validators: { onChange: releaseFormSchema },
+    defaultValues: {
+      name: defaultValues?.name ?? "",
+      status: defaultValues?.status ?? "active",
+      country: defaultValues?.country ?? "",
+      location: defaultValues?.location ?? "",
+      label: defaultValues?.label ?? "",
+      band_picture: defaultValues?.band_picture ?? null,
+    } as BandFormValues,
+    validators: { onChange: bandFormSchema },
     onSubmit: async ({ value }) => {
       await onSubmit(value);
     },
@@ -81,26 +83,20 @@ export const ReleaseForm = ({
             )}
           </form.Field>
 
-          <form.Field name="year">
+          <form.Field name="country">
             {(field) => (
               <div className="flex flex-col gap-[0.5rem]">
-                <Label htmlFor={field.name}>Year</Label>
-                <Select
-                  value={field.state.value ? String(field.state.value) : undefined}
-                  onValueChange={(y) => field.handleChange(Number(y))}
-                >
+                <Label htmlFor={field.name}>Country</Label>
+                <Select value={field.state.value} onValueChange={field.handleChange}>
                   <SelectTrigger id={field.name} className="w-[180px]" onBlur={field.handleBlur}>
-                    <SelectValue placeholder="Year" />
+                    <SelectValue placeholder="Country" />
                   </SelectTrigger>
                   <SelectContent>
-                    {Array.from({ length: END_YEAR - START_YEAR + 1 }, (_, i) => {
-                      const year = START_YEAR + i;
-                      return (
-                        <SelectItem key={year} value={String(year)}>
-                          {year}
-                        </SelectItem>
-                      );
-                    })}
+                    {countries.map((c) => (
+                      <SelectItem key={c.code} value={c.code}>
+                        {c.name}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
                 <FieldError meta={field.state.meta} show={form.state.submissionAttempts > 0} />
@@ -108,22 +104,19 @@ export const ReleaseForm = ({
             )}
           </form.Field>
 
-          <form.Field name="release_type">
+          <form.Field name="location">
             {(field) => (
               <div className="flex flex-col gap-[0.5rem]">
-                <Label htmlFor={field.name}>Release Type</Label>
-                <Select value={field.state.value ?? undefined} onValueChange={field.handleChange}>
-                  <SelectTrigger id={field.name} className="w-[180px]" onBlur={field.handleBlur}>
-                    <SelectValue placeholder="Release Type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {releaseTypes.map((o) => (
-                      <SelectItem key={o.value} value={o.value}>
-                        {o.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Label htmlFor={field.name}>Location</Label>
+                <Input
+                  id={field.name}
+                  name={field.name}
+                  value={field.state.value}
+                  onBlur={field.handleBlur}
+                  onChange={(e) => field.handleChange(e.target.value)}
+                  type="text"
+                  placeholder="City, State"
+                />
                 <FieldError meta={field.state.meta} show={form.state.submissionAttempts > 0} />
               </div>
             )}
@@ -136,12 +129,36 @@ export const ReleaseForm = ({
                 <Input
                   id={field.name}
                   name={field.name}
-                  value={field.state.value ?? ""}
+                  value={field.state.value}
                   onBlur={field.handleBlur}
-                  onChange={(e) => field.handleChange(e.target.value || null)}
+                  onChange={(e) => field.handleChange(e.target.value)}
                   type="text"
                   placeholder="Label"
                 />
+                <FieldError meta={field.state.meta} show={form.state.submissionAttempts > 0} />
+              </div>
+            )}
+          </form.Field>
+
+          <form.Field name="status">
+            {(field) => (
+              <div className="flex flex-col gap-[0.5rem]">
+                <Label htmlFor={field.name}>Status</Label>
+                <Select
+                  value={field.state.value}
+                  onValueChange={(v) => field.handleChange(v as BandFormValues["status"])}
+                >
+                  <SelectTrigger id={field.name} className="w-[180px]" onBlur={field.handleBlur}>
+                    <SelectValue placeholder="Status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {statuses.map((s) => (
+                      <SelectItem key={s.value} value={s.value}>
+                        {s.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
                 <FieldError meta={field.state.meta} show={form.state.submissionAttempts > 0} />
               </div>
             )}

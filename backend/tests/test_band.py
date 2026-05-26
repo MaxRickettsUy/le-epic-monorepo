@@ -62,3 +62,24 @@ def test_update_and_delete(client):
 
     assert client.request("DELETE", f"/band/{band_id}/delete").status_code == 200
     assert client.get(f"/band/{band_id}").status_code == 404
+
+
+def test_similar_404(client):
+    assert client.get("/band/999/similar").status_code == 404
+
+
+def test_similar_ranks_same_location_then_country(client):
+    base_id = _create(client).json()["id"]  # D.C. / United States
+    same_loc = _create(client, name="Bad Brains").json()["id"]  # same location
+    same_country = _create(
+        client, name="Black Flag", location="Hermosa Beach, CA"
+    ).json()["id"]
+    # Different country entirely — must be excluded.
+    _create(client, name="Discharge", location="Stoke-on-Trent", country="United Kingdom")
+
+    similar = client.get(f"/band/{base_id}/similar").json()
+    ids = [b["id"] for b in similar]
+
+    assert base_id not in ids  # self excluded
+    assert ids == [same_loc, same_country]  # same location ranks first
+    assert {"id", "name", "location", "country"} == set(similar[0].keys())

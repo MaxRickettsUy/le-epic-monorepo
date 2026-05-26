@@ -1,6 +1,11 @@
 import { z } from "zod";
-import type { Band, BandList, BandStatus, MutationResult } from "@/lib/types";
-import { bandListSchema, bandSchema, mutationResultSchema } from "@/lib/schemas";
+import type { Band, BandList, BandStatus, MutationResult, SimilarBand } from "@/lib/types";
+import {
+  bandListSchema,
+  bandSchema,
+  mutationResultSchema,
+  similarBandSchema,
+} from "@/lib/schemas";
 import { apiFetch, apiFetchOrNull } from "./client";
 
 export interface BandCreateInput {
@@ -25,6 +30,13 @@ export function listBands(page = 1, sort: "name" | "recent" = "name"): Promise<B
 /** Band detail (`GET /band/{id}`); `null` when the band does not exist. */
 export function getBand(id: number): Promise<Band | null> {
   return apiFetchOrNull(`/band/${id}`, bandSchema, { next: { revalidate: 60 } });
+}
+
+/** Bands from the same scene (`GET /band/{id}/similar`); `[]` when the band has none. */
+export function getSimilarBands(id: number): Promise<SimilarBand[]> {
+  return apiFetch(`/band/${id}/similar`, z.array(similarBandSchema), {
+    next: { revalidate: 60 },
+  });
 }
 
 export function createBand(input: BandCreateInput): Promise<MutationResult> {

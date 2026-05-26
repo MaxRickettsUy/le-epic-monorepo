@@ -8,6 +8,7 @@ export type {
   Track,
   Release,
   BandSummary,
+  SimilarBand,
   ReleaseDetail,
   BandListItem,
   Band,

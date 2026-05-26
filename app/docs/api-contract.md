@@ -35,6 +35,7 @@ the frontend depends on. The authoritative definitions live in:
 | --------------------------------- | ------------ | ----------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
 | `GET /band/`                      | —            | `BandList`                          | `?page=` (1-based), `bands_per_page` from backend settings. `?sort=` is `name` (default) or `recent` (created_at desc). |
 | `GET /band/{id}`                  | —            | `BandDetail`                        | `404` → `null`. Eager-loads `releases` + `members`.                                                                     |
+| `GET /band/{id}/similar`          | —            | `SimilarBand[]`                     | Scene-based: same `location` ranked first, then same `country`, self excluded, capped at `bands_per_page`. `404` if missing. |
 | `POST /band/new`                  | `BandCreate` | `{ message: string, id: number }`   |                                                                                                                         |
 | `POST /band/{id}/update`          | `BandCreate` | `"band updated"` (bare JSON string) | `404` if missing.                                                                                                       |
 | `DELETE /band/{id}/delete`        | —            | `"band deleted"`                    | Not used by the frontend yet.                                                                                           |
@@ -110,6 +111,12 @@ use `.nullish()`, accepting `null` and `undefined`.
 
 ```json
 { name: string; role?: string; }
+```
+
+### `SimilarBand` — `GET /band/{id}/similar`
+
+```json
+{ id: number; name: string; location: string; country: string; }
 ```
 
 ### `Release` (nested under a band)

@@ -127,6 +127,15 @@ class BandDetail(BandBase):
     releases: list[ReleaseInBand] = []
 
 
+class SimilarBand(ORMModel):
+    """A band related to another by shared scene (location/country)."""
+
+    id: int
+    name: str
+    location: str
+    country: str
+
+
 class BandCreate(BaseInput):
     name: str
     status: str

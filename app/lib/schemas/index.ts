@@ -75,6 +75,14 @@ export const bandSchema = bandBaseSchema.extend({
   releases: z.array(releaseSchema),
 });
 
+/** A scene-related band (`GET /band/{id}/similar`). */
+export const similarBandSchema = z.object({
+  id: z.number(),
+  name: z.string(),
+  location: z.string(),
+  country: z.string(),
+});
+
 /** Paginated band list envelope (`GET /band/`). */
 export const bandListSchema = z.object({
   bands: z.array(bandListItemSchema),
@@ -123,6 +131,7 @@ export type Member = z.infer<typeof memberSchema>;
 export type Track = z.infer<typeof trackSchema>;
 export type Release = z.infer<typeof releaseSchema>;
 export type BandSummary = z.infer<typeof bandSummarySchema>;
+export type SimilarBand = z.infer<typeof similarBandSchema>;
 export type ReleaseDetail = z.infer<typeof releaseDetailSchema>;
 export type BandListItem = z.infer<typeof bandListItemSchema>;
 export type Band = z.infer<typeof bandSchema>;

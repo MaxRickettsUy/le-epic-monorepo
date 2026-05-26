@@ -80,6 +80,27 @@ def get(id: int, db: Session = Depends(get_db)):
     return band
 
 
+@router.get("/{id}/similar", response_model=list[schemas.SimilarBand])
+def get_similar(id: int, db: Session = Depends(get_db)):
+    band = db.get(Band, id)
+    if band is None:
+        raise HTTPException(status_code=404, detail="Band not found")
+
+    # Bands from the same local scene rank first, then others from the same
+    # country. No similarity model exists yet, so location/country is the proxy.
+    same_location = Band.location == band.location
+    bands = db.scalars(
+        sa.select(Band)
+        .where(
+            Band.id != band.id,
+            sa.or_(same_location, Band.country == band.country),
+        )
+        .order_by(same_location.desc(), Band.name)
+        .limit(settings.bands_per_page)
+    ).all()
+    return bands
+
+
 @router.post("/{id}/update")
 def update(id: int, payload: schemas.BandCreate, db: Session = Depends(get_db)):
     band = db.get(Band, id)

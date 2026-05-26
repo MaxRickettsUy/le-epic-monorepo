@@ -128,12 +128,21 @@ class BandDetail(BandBase):
 
 
 class SimilarBand(ORMModel):
-    """A band related to another by shared scene (location/country)."""
+    """A band scored as similar to another, with the contributing factors.
+
+    `score` is a weighted sum (see `band.routes.SIMILARITY_WEIGHTS`); the
+    boolean/count fields expose *why* it matched so the UI can explain it.
+    """
 
     id: int
     name: str
     location: str
     country: str
+    score: int
+    shared_members: int
+    same_location: bool
+    same_label: bool
+    same_country: bool
 
 
 class BandCreate(BaseInput):

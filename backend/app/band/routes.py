@@ -12,6 +12,18 @@ from app.settings import settings
 
 router = APIRouter()
 
+# Weights for the similar-bands score. No real similarity model exists yet, so
+# we combine the locally-stored signals; higher = stronger pull. Tune freely —
+# the per-factor contributions are returned on each result so the effect of a
+# change is visible in the UI. (MusicBrainz artist relations would be a natural
+# extra signal but aren't stored; that needs new modelling + seed work first.)
+SIMILARITY_WEIGHTS = {
+    "shared_member": 5,  # per member the two bands have in common
+    "location": 4,  # same local scene
+    "label": 2,  # same record label
+    "country": 1,  # same country (weak tie-breaker)
+}
+
 
 @router.get("/", response_model=schemas.BandList)
 @router.get("/index", response_model=schemas.BandList, include_in_schema=False)
@@ -86,19 +98,60 @@ def get_similar(id: int, db: Session = Depends(get_db)):
     if band is None:
         raise HTTPException(status_code=404, detail="Band not found")
 
-    # Bands from the same local scene rank first, then others from the same
-    # country. No similarity model exists yet, so location/country is the proxy.
-    same_location = Band.location == band.location
-    bands = db.scalars(
-        sa.select(Band)
-        .where(
-            Band.id != band.id,
-            sa.or_(same_location, Band.country == band.country),
+    w = SIMILARITY_WEIGHTS
+
+    # How many members each candidate shares with this band.
+    target_member_ids = (
+        sa.select(BandMember.member_id).where(BandMember.band_id == band.id).scalar_subquery()
+    )
+    shared_members = (
+        sa.select(sa.func.count())
+        .select_from(BandMember)
+        .where(BandMember.band_id == Band.id, BandMember.member_id.in_(target_member_ids))
+        .correlate(Band)
+        .scalar_subquery()
+    )
+
+    # Per-factor 0/1 flags (label only counts when it is actually set).
+    same_location = sa.case((Band.location == band.location, 1), else_=0)
+    same_label = sa.case(((Band.label == band.label) & (Band.label != ""), 1), else_=0)
+    same_country = sa.case((Band.country == band.country, 1), else_=0)
+
+    score = (
+        w["shared_member"] * shared_members
+        + w["location"] * same_location
+        + w["label"] * same_label
+        + w["country"] * same_country
+    )
+
+    rows = db.execute(
+        sa.select(
+            Band,
+            shared_members.label("shared_members"),
+            same_location.label("same_location"),
+            same_label.label("same_label"),
+            same_country.label("same_country"),
+            score.label("score"),
         )
-        .order_by(same_location.desc(), Band.name)
+        .where(Band.id != band.id, score > 0)
+        .order_by(score.desc(), Band.name)
         .limit(settings.bands_per_page)
     ).all()
-    return bands
+
+    return [
+        schemas.SimilarBand(
+            id=cand.id,
+            name=cand.name,
+            location=cand.location,
+            country=cand.country,
+            score=total,
+            shared_members=members,
+            same_location=bool(loc),
+            same_label=bool(label),
+            same_country=bool(country),
+        )
+        for cand, members, loc, label, country, total in rows
+    ]
 
 
 @router.post("/{id}/update")

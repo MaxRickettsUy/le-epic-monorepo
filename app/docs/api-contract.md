@@ -35,7 +35,7 @@ the frontend depends on. The authoritative definitions live in:
 | --------------------------------- | ------------ | ----------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
 | `GET /band/`                      | —            | `BandList`                          | `?page=` (1-based), `bands_per_page` from backend settings. `?sort=` is `name` (default) or `recent` (created_at desc). |
 | `GET /band/{id}`                  | —            | `BandDetail`                        | `404` → `null`. Eager-loads `releases` + `members`.                                                                     |
-| `GET /band/{id}/similar`          | —            | `SimilarBand[]`                     | Scene-based: same `location` ranked first, then same `country`, self excluded, capped at `bands_per_page`. `404` if missing. |
+| `GET /band/{id}/similar`          | —            | `SimilarBand[]`                     | Weighted score over shared members, `location`, `label`, `country` (see `band/routes.py` `SIMILARITY_WEIGHTS`). Self excluded, score-desc then name, capped at `bands_per_page`. `404` if missing. |
 | `POST /band/new`                  | `BandCreate` | `{ message: string, id: number }`   |                                                                                                                         |
 | `POST /band/{id}/update`          | `BandCreate` | `"band updated"` (bare JSON string) | `404` if missing.                                                                                                       |
 | `DELETE /band/{id}/delete`        | —            | `"band deleted"`                    | Not used by the frontend yet.                                                                                           |
@@ -115,8 +115,21 @@ use `.nullish()`, accepting `null` and `undefined`.
 
 ### `SimilarBand` — `GET /band/{id}/similar`
 
+`score` is the weighted sum; the remaining fields expose which factors
+contributed (so the UI can render "why").
+
 ```json
-{ id: number; name: string; location: string; country: string; }
+{
+  id: number;
+  name: string;
+  location: string;
+  country: string;
+  score: number;
+  shared_members: number;
+  same_location: boolean;
+  same_label: boolean;
+  same_country: boolean;
+}
 ```
 
 ### `Release` (nested under a band)

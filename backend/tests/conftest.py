@@ -47,3 +47,16 @@ def client():
         yield c
     fastapi_app.dependency_overrides.pop(get_db, None)
     Base.metadata.drop_all(bind=engine)
+
+
+@pytest.fixture()
+def db(client):
+    # A session on the same in-memory engine for tests that need to seed rows
+    # the API has no write endpoint for (e.g. Members). Depends on `client` so
+    # the schema is already created. StaticPool means it shares the request
+    # sessions' connection, so committed rows are visible to API calls.
+    session = TestingSessionLocal()
+    try:
+        yield session
+    finally:
+        session.close()

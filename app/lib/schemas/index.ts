@@ -75,12 +75,20 @@ export const bandSchema = bandBaseSchema.extend({
   releases: z.array(releaseSchema),
 });
 
-/** A scene-related band (`GET /band/{id}/similar`). */
+/**
+ * A band scored as similar (`GET /band/{id}/similar`). `score` is a weighted
+ * sum; the remaining fields expose which factors contributed, for the UI.
+ */
 export const similarBandSchema = z.object({
   id: z.number(),
   name: z.string(),
   location: z.string(),
   country: z.string(),
+  score: z.number(),
+  shared_members: z.number(),
+  same_location: z.boolean(),
+  same_label: z.boolean(),
+  same_country: z.boolean(),
 });
 
 /** Paginated band list envelope (`GET /band/`). */

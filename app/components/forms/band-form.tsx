@@ -41,6 +41,7 @@ export const BandForm = ({
       location: defaultValues?.location ?? "",
       label: defaultValues?.label ?? "",
       band_picture: defaultValues?.band_picture ?? null,
+      logo: defaultValues?.logo ?? null,
     } as BandFormValues,
     validators: { onChange: bandFormSchema },
     onSubmit: async ({ value }) => {
@@ -134,6 +135,24 @@ export const BandForm = ({
                   onChange={(e) => field.handleChange(e.target.value)}
                   type="text"
                   placeholder="Label"
+                />
+                <FieldError meta={field.state.meta} show={form.state.submissionAttempts > 0} />
+              </div>
+            )}
+          </form.Field>
+
+          <form.Field name="logo">
+            {(field) => (
+              <div className="flex flex-col gap-[0.5rem]">
+                <Label htmlFor={field.name}>Logo URL</Label>
+                <Input
+                  id={field.name}
+                  name={field.name}
+                  value={field.state.value ?? ""}
+                  onBlur={field.handleBlur}
+                  onChange={(e) => field.handleChange(e.target.value || null)}
+                  type="url"
+                  placeholder="https://…"
                 />
                 <FieldError meta={field.state.meta} show={form.state.submissionAttempts > 0} />
               </div>

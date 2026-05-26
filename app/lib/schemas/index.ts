@@ -59,6 +59,7 @@ const bandBaseSchema = z.object({
   name: z.string(),
   status: bandStatusSchema,
   band_picture: z.string().nullish(),
+  logo: z.string().nullish(),
   location: z.string(),
   country: z.string(),
   label: z.string(),
@@ -102,6 +103,7 @@ export const bandFormSchema = z.object({
   location: z.string().trim(),
   label: z.string().trim(),
   band_picture: z.string().nullish(),
+  logo: z.string().nullish(),
 });
 
 export const releaseFormSchema = z.object({

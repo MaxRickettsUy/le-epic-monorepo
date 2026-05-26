@@ -28,6 +28,7 @@ class Band(TimestampMixin, Base):
     name: so.Mapped[str] = so.mapped_column(sa.String(100), index=True)
     status: so.Mapped[str] = so.mapped_column(sa.String(25))
     band_picture: so.Mapped[str | None] = so.mapped_column(sa.String(150))
+    logo: so.Mapped[str | None] = so.mapped_column(sa.String(150))
     location: so.Mapped[str] = so.mapped_column(sa.String(100))
     country: so.Mapped[str] = so.mapped_column(sa.String(100))
     label: so.Mapped[str] = so.mapped_column(sa.String(100))

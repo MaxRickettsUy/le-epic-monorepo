@@ -105,6 +105,7 @@ class BandBase(ORMModel):
     name: str
     status: str
     band_picture: str | None = None
+    logo: str | None = None
     location: str
     country: str
     label: str
@@ -130,6 +131,7 @@ class BandCreate(BaseInput):
     name: str
     status: str
     band_picture: str | None = None
+    logo: str | None = None
     location: str
     country: str
     label: str

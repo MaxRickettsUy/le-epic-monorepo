@@ -22,9 +22,13 @@ def get_all(
 ):
     per_page = settings.bands_per_page
     total = db.scalar(sa.select(sa.func.count()).select_from(Band))
-    order = Band.created_at.desc() if sort == "recent" else Band.name
+    order = (
+        (Band.created_at.desc(), Band.id.desc())
+        if sort == "recent"
+        else (Band.name.asc(), Band.id.asc())
+    )
     bands = db.scalars(
-        sa.select(Band).order_by(order).offset((page - 1) * per_page).limit(per_page)
+        sa.select(Band).order_by(*order).offset((page - 1) * per_page).limit(per_page)
     ).all()
 
     has_next = page * per_page < total

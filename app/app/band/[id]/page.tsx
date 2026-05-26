@@ -31,7 +31,7 @@ export default async function BandPage({ params }: PageProps) {
   const releases = [...band.releases].sort((a, b) => (a.year ?? 0) - (b.year ?? 0));
 
   return (
-    <main className="flex-col pb-[1rem]">
+    <main className="flex flex-col pb-[1rem]">
       <Header />
       <div className="flex flex-col gap-[1rem] p-4 md:flex-row">
         <TopSection id={band.id} name={band.name} picture={band.band_picture} />

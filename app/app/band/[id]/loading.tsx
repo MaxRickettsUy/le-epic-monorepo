@@ -3,7 +3,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 export default function Loading() {
   return (
-    <main className="flex-col pb-[1rem]">
+    <main className="flex flex-col pb-[1rem]">
       <Header />
       <div className="flex flex-col gap-[1rem] p-4 md:flex-row" aria-busy="true">
         <Skeleton className="h-[420px] w-[290px]" />

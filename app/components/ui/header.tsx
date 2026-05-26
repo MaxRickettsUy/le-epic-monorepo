@@ -22,7 +22,7 @@ export const Header = () => {
         </Avatar>
       </Link>
       <nav aria-label="Primary" className="ml-auto flex flex-row items-center gap-[1rem]">
-        <Button asChild className="hidden sm:inline-flex">
+        <Button asChild className="inline-flex">
           <Link href="/create/band">Add Band</Link>
         </Button>
         <SearchInput />

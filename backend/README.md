@@ -35,6 +35,17 @@ release-groups, and band membership in a few SQL queries.
    - `seed.cover_art` sets `album.art` from the Cover Art Archive for albums that
      have a release-group MBID but no art yet.
 
+## Seed lightweight dev data
+
+For local development without the MusicBrainz dump, `seed.dev` inserts a small
+set of hand-written hardcore-punk bands (with albums, tracks, and members)
+straight into the app DB. It's idempotent by band name — re-running skips bands
+that already exist.
+
+```bash
+docker compose exec hc_archives_back python -m seed.dev
+```
+
 ## Tests
 
 ```bash

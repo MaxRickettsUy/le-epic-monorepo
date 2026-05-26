@@ -51,6 +51,14 @@ docker compose run --rm --entrypoint bash hc_archives_back -lc \
   "python -m seed.mb_dump && python -m seed.cover_art"
 ```
 
+For local development without the dump, seed a small hand-written set of bands
+(albums, tracks, members) straight into the app DB instead:
+
+```bash
+cd backend
+docker compose exec hc_archives_back python -m seed.dev
+```
+
 ## Development
 
 ### Backend (`cd backend`)

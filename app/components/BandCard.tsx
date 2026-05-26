@@ -33,9 +33,7 @@ export const BandCard = ({ band }: { band: BandListItem }) => {
           <p className="truncate font-medium group-hover:underline" title={band.name}>
             {band.name}
           </p>
-          <p className="truncate text-sm text-muted-foreground">
-            {band.location || band.country}
-          </p>
+          <p className="truncate text-sm text-muted-foreground">{band.location || band.country}</p>
         </div>
       </Card>
     </Link>

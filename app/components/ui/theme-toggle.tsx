@@ -19,6 +19,7 @@ export function ThemeToggle() {
     <Button
       variant="outline"
       size="icon"
+      className="shrink-0"
       aria-label={mounted ? `Switch to ${isDark ? "light" : "dark"} mode` : "Toggle theme"}
       disabled={!mounted}
       onClick={() => setTheme(isDark ? "light" : "dark")}

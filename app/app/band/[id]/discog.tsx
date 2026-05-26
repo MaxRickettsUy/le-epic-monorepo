@@ -20,31 +20,33 @@ const ReleaseLink = ({ release }: { release: Release }) => (
 
 export const DiscographyTable = ({ releases }: { releases: Release[] }) => {
   return (
-    <Table>
-      <TableHeader>
-        <TableRow>
-          <TableHead className="w-100">Year</TableHead>
-          <TableHead>Name</TableHead>
-          <TableHead>Type</TableHead>
-          <TableHead>Rating</TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {releases.map((release) => (
-          <TableRow key={release.id}>
-            <TableCell className="font-medium">{release.year}</TableCell>
-            <TableCell>
-              <ReleaseLink release={release} />
-            </TableCell>
-            <TableCell>{release.release_type?.toUpperCase()}</TableCell>
-            <TableCell>
-              {release.review_count > 0
-                ? `${release.avg_review}% (${release.review_count} reviews)`
-                : "—"}
-            </TableCell>
+    <div className="max-h-[60vh] overflow-y-auto">
+      <Table>
+        <TableHeader className="sticky top-0 z-10 bg-background">
+          <TableRow>
+            <TableHead className="w-100">Year</TableHead>
+            <TableHead>Name</TableHead>
+            <TableHead>Type</TableHead>
+            <TableHead>Rating</TableHead>
           </TableRow>
-        ))}
-      </TableBody>
-    </Table>
+        </TableHeader>
+        <TableBody>
+          {releases.map((release) => (
+            <TableRow key={release.id}>
+              <TableCell className="font-medium">{release.year}</TableCell>
+              <TableCell>
+                <ReleaseLink release={release} />
+              </TableCell>
+              <TableCell>{release.release_type?.toUpperCase()}</TableCell>
+              <TableCell>
+                {release.review_count > 0
+                  ? `${release.avg_review}% (${release.review_count} reviews)`
+                  : "—"}
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </div>
   );
 };

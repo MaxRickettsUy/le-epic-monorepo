@@ -5,7 +5,6 @@ import { TracksTable } from "./table";
 import { AlbumBreadcrumbs } from "./breadcrumbs";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Header } from "@/components/ui/header";
-import { Separator } from "@/components/ui/separator";
 import { TopSection } from "@/components/TopSection";
 
 interface PageProps {
@@ -30,11 +29,8 @@ export default async function ReleasePage({ params }: PageProps) {
   if (!release) notFound();
 
   return (
-    <main className="flex-col py-[1rem]">
+    <main className="flex-col pb-[1rem]">
       <Header />
-      <div className="w-full py-[1rem]">
-        <Separator />
-      </div>
       <div className="flex flex-col gap-[1rem] p-[1rem]">
         <AlbumBreadcrumbs band={release.band.name} name={release.name} id={release.band_id} />
         <div className="flex flex-col gap-[1rem] p-4 md:flex-row">

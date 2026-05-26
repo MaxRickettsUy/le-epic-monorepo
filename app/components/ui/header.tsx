@@ -15,14 +15,14 @@ const SearchInput = () => (
 
 export const Header = () => {
   return (
-    <header className="flex flex-row items-center gap-[1rem] px-[1rem]">
+    <header className="sticky top-0 z-50 flex flex-row items-center gap-[1rem] bg-header px-[1rem] py-2">
       <Link href="/" aria-label="le-epic home">
         <Avatar>
           <AvatarFallback>L</AvatarFallback>
         </Avatar>
       </Link>
       <nav aria-label="Primary" className="ml-auto flex flex-row items-center gap-[1rem]">
-        <Button asChild>
+        <Button asChild className="hidden sm:inline-flex">
           <Link href="/create/band">Add Band</Link>
         </Button>
         <SearchInput />

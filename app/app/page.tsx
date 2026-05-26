@@ -1,4 +1,3 @@
-import { Separator } from "@/components/ui/separator";
 import { listBands } from "@/lib/api";
 import { Header } from "@/components/ui/header";
 import { BandCard } from "@/components/BandCard";
@@ -11,11 +10,8 @@ export default async function Home() {
   const { bands } = await listBands(1, "recent");
 
   return (
-    <main className="flex flex-col py-[1rem]">
+    <main className="flex flex-col pb-[1rem]">
       <Header />
-      <div className="w-full py-[1rem]">
-        <Separator />
-      </div>
       <div className="p-[1rem]">
         <h2 className="mb-4 text-lg font-semibold tracking-tight">Recently added</h2>
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">

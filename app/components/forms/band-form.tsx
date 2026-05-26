@@ -11,7 +11,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Separator } from "@/components/ui/separator";
 import { Header } from "@/components/ui/header";
 import { FieldError } from "@/components/forms/field-error";
 import { countries } from "@/lib/const";
@@ -50,11 +49,8 @@ export const BandForm = ({
   });
 
   return (
-    <main className="flex-col py-[1rem]">
+    <main className="flex-col pb-[1rem]">
       <Header />
-      <div className="w-full py-[1rem]">
-        <Separator />
-      </div>
       <div className="flex flex-col gap-[1rem] p-[1rem]">
         <form
           className="flex flex-col gap-[1rem]"

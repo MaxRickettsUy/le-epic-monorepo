@@ -4,7 +4,6 @@ import { getBand } from "@/lib/api";
 import { DiscographyTable } from "./discog";
 import { MemberTable } from "./members";
 import { Header } from "@/components/ui/header";
-import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TopSection } from "@/components/TopSection";
 
@@ -32,11 +31,8 @@ export default async function BandPage({ params }: PageProps) {
   const releases = [...band.releases].sort((a, b) => (a.year ?? 0) - (b.year ?? 0));
 
   return (
-    <main className="flex-col py-[1rem]">
+    <main className="flex-col pb-[1rem]">
       <Header />
-      <div className="w-full py-[1rem]">
-        <Separator />
-      </div>
       <div className="flex flex-col gap-[1rem] p-4 md:flex-row">
         <TopSection id={band.id} name={band.name} picture={band.band_picture} />
         <Tabs defaultValue="discography" className="w-full p-4">

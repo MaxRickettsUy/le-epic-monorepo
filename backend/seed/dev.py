@@ -103,6 +103,180 @@ BANDS = [
             ("Bones", "guitar"),
         ],
     },
+    # --- Baltimore, MD hardcore (early 2010s) --------------------------------
+    {
+        "name": "Trapped Under Ice",
+        "status": "on-hold",
+        "location": "Baltimore, Maryland",
+        "country": "United States",
+        "label": "Reaper Records",
+        "albums": [
+            ("Secrets of the World", 2009, "lp", ["Reflection", "Disengage", "Stay Cold"]),
+            ("Big Kiss Goodnight", 2011, "lp", ["Plelude", "Believe", "Skeleton", "The Hatred"]),
+        ],
+        "members": [
+            ("Justice Tripp", "vocals"),
+            ("Sam Trapkin", "guitar"),
+            ("Brendan Yates", "drums"),
+        ],
+    },
+    {
+        "name": "Turnstile",
+        "status": "active",
+        "location": "Baltimore, Maryland",
+        "country": "United States",
+        "label": "Reaper Records",
+        "albums": [
+            (
+                "Pressure to Succeed",
+                2011,
+                "ep",
+                ["Pressure to Succeed", "Death Grip", "Can't Deny It"],
+            ),
+            ("Step 2 Rhythm", 2013, "ep", ["Keep It Moving", "Bring It Back", "Stress"]),
+        ],
+        "members": [
+            ("Brendan Yates", "vocals"),
+            ("Pat McCrory", "guitar"),
+            ("Franz Lyons", "bass"),
+            ("Daniel Fang", "drums"),
+        ],
+    },
+    {
+        "name": "Angel Du$t",
+        "status": "active",
+        "location": "Baltimore, Maryland",
+        "country": "United States",
+        "label": "React! Records",
+        "albums": [
+            ("A.D.", 2014, "lp", ["Big Bitch", "Bang My Drum", "No Fool"]),
+        ],
+        "members": [
+            ("Justice Tripp", "vocals"),
+            ("Brendan Yates", "guitar"),
+            ("Daniel Fang", "drums"),
+        ],
+    },
+    {
+        "name": "Pulling Teeth",
+        "status": "split-up",
+        "location": "Baltimore, Maryland",
+        "country": "United States",
+        "label": "Deathwish Inc.",
+        "albums": [
+            (
+                "Paranoid Delusions / Paradise Illusions",
+                2009,
+                "lp",
+                ["Paradise Illusions", "Witch Hunt", "Conscientious Objector"],
+            ),
+            ("Funerary", 2011, "lp", ["Rebirth", "Bridges", "Familiar Voice"]),
+        ],
+        "members": [
+            ("Mike Riley", "vocals"),
+            ("Domenic Romeo", "guitar"),
+        ],
+    },
+    # --- Wilkes-Barre / NEPA hardcore (early 2010s) --------------------------
+    {
+        "name": "Cold World",
+        "status": "active",
+        "location": "Wilkes-Barre, Pennsylvania",
+        "country": "United States",
+        "label": "Deathwish Inc.",
+        "albums": [
+            (
+                "Dedicated to Babies Who Were Aborted",
+                2008,
+                "lp",
+                ["Ice Grillz", "An Eye for an Eye", "Slum Lord"],
+            ),
+            ("How the Gods Chill", 2014, "lp", ["Intro", "How the Gods Chill", "Hell's Direction"]),
+        ],
+        "members": [
+            ("Daniel Dart", "vocals"),
+            ("Nick Woj", "drums"),
+        ],
+    },
+    {
+        "name": "Title Fight",
+        "status": "on-hold",
+        "location": "Kingston, Pennsylvania",
+        "country": "United States",
+        "label": "SideOneDummy Records",
+        "albums": [
+            ("Shed", 2011, "lp", ["Coxton Yard", "27", "Crescent-Shaped Depression", "Society"]),
+            (
+                "Floral Green",
+                2012,
+                "lp",
+                ["Numb, But I Still Feel It", "Head in the Ceiling Fan", "Sympathy"],
+            ),
+        ],
+        "members": [
+            ("Ned Russin", "bass / vocals"),
+            ("Jamie Rhoden", "guitar / vocals"),
+            ("Shane Moran", "guitar"),
+            ("Ben Russin", "drums"),
+        ],
+    },
+    {
+        "name": "Strength for a Reason",
+        "status": "active",
+        "location": "Wilkes-Barre, Pennsylvania",
+        "country": "United States",
+        "label": "Stillborn Records",
+        "albums": [
+            ("Burden of Hope", 2009, "lp", ["Burden of Hope", "No Regrets", "Set in Stone"]),
+        ],
+        "members": [
+            ("Karl Kivler", "vocals"),
+        ],
+    },
+    {
+        "name": "Dead End Path",
+        "status": "split-up",
+        "location": "Wilkes-Barre, Pennsylvania",
+        "country": "United States",
+        "label": "Triple B Records",
+        "albums": [
+            ("Death Walks Beside Us", 2010, "ep", ["Death Walks Beside Us", "Nowhere Together"]),
+            ("Blind Faith", 2011, "lp", ["Blind Faith", "Hour of the Wolf", "Disconnect"]),
+        ],
+        "members": [],
+    },
+    {
+        "name": "War Hungry",
+        "status": "split-up",
+        "location": "Wilkes-Barre, Pennsylvania",
+        "country": "United States",
+        "label": "Six Feet Under Records",
+        "albums": [
+            ("Return to Earth", 2007, "ep", ["Return to Earth", "Broken on the Wheel"]),
+            ("War Hungry", 2013, "lp", ["No Reason", "Tunnel Vision", "Burning Bridges"]),
+        ],
+        "members": [
+            ("Hoodrack", "vocals"),
+            ("Josh", "guitar"),
+            ("Sam", "bass"),
+            ("Mook", "drums"),
+        ],
+    },
+    {
+        "name": "Bad Seed",
+        "status": "split-up",
+        "location": "Wilkes-Barre, Pennsylvania",
+        "country": "United States",
+        "label": "6131 Records",
+        "albums": [
+            ("Bad Seed", 2009, "ep", ["Bad Seed", "Nothing to Prove", "Cast Out"]),
+        ],
+        "members": [
+            ("Shane Moran", "guitar"),
+            ("Ned Russin", "bass"),
+            ("Jamie Rhoden", "guitar"),
+        ],
+    },
 ]
 
 

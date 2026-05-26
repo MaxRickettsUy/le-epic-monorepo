@@ -10,13 +10,16 @@ export interface BandCreateInput {
   country: string;
   label: string;
   band_picture?: string | null;
+  logo?: string | null;
 }
 
 export type { MutationResult };
 
-/** Paginated list of bands (`GET /band/`). */
-export function listBands(page = 1): Promise<BandList> {
-  return apiFetch(`/band/?page=${page}`, bandListSchema, { next: { revalidate: 60 } });
+/** Paginated list of bands (`GET /band/`). `sort` is `name` (default) or `recent`. */
+export function listBands(page = 1, sort: "name" | "recent" = "name"): Promise<BandList> {
+  return apiFetch(`/band/?page=${page}&sort=${sort}`, bandListSchema, {
+    next: { revalidate: 60 },
+  });
 }
 
 /** Band detail (`GET /band/{id}`); `null` when the band does not exist. */

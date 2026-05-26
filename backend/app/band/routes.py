@@ -1,3 +1,5 @@
+from typing import Literal
+
 import sqlalchemy as sa
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session, selectinload
@@ -15,12 +17,18 @@ router = APIRouter()
 @router.get("/index", response_model=schemas.BandList, include_in_schema=False)
 def get_all(
     page: int = Query(1, ge=1),
+    sort: Literal["name", "recent"] = Query("name"),
     db: Session = Depends(get_db),
 ):
     per_page = settings.bands_per_page
     total = db.scalar(sa.select(sa.func.count()).select_from(Band))
+    order = (
+        (Band.created_at.desc(), Band.id.desc())
+        if sort == "recent"
+        else (Band.name.asc(), Band.id.asc())
+    )
     bands = db.scalars(
-        sa.select(Band).order_by(Band.name).offset((page - 1) * per_page).limit(per_page)
+        sa.select(Band).order_by(*order).offset((page - 1) * per_page).limit(per_page)
     ).all()
 
     has_next = page * per_page < total

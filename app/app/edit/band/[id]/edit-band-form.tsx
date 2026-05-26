@@ -15,6 +15,7 @@ export const EditBandForm = ({ band }: { band: Band }) => {
         country: band.country,
         label: band.label,
         band_picture: band.band_picture ?? null,
+        logo: band.logo ?? null,
       }}
       onSubmit={(input) => updateBandAction(band.id, input)}
     />

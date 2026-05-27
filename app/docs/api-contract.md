@@ -62,9 +62,9 @@ the frontend depends on. The authoritative definitions live in:
 
 ### Search
 
-| Method & path     | Request body | Response (2xx)  | Notes                                                                                                                            |
-| ----------------- | ------------ | --------------- | ------------------------------------------------------------------------------------------------------------------------------- |
-| `GET /search/?q=` | —            | `SearchResults` | Case-insensitive substring match on **local** band name + `location` and album name (LIKE wildcards in `q` are escaped). `q` required (≥1 char; `422` otherwise). Capped at 20 results per type. Distinct from the `/band/search*` MusicBrainz passthroughs. |
+| Method & path     | Request body | Response (2xx)  | Notes                                                                                                                                                                                                                                                                            |
+| ----------------- | ------------ | --------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET /search/?q=` | —            | `SearchResults` | Case-insensitive substring match on **local** band name + `location` and album name (LIKE wildcards in `q` are escaped). `q` required and non-blank after trimming (`422` otherwise). Capped at 20 results per type. Distinct from the `/band/search*` MusicBrainz passthroughs. |
 
 ### Meta
 

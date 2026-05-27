@@ -10,6 +10,8 @@ def test_search_empty_query_rejected(client):
     # min_length=1 on the query param.
     assert client.get("/search/?q=").status_code == 422
     assert client.get("/search/").status_code == 422
+    # Whitespace-only survives min_length but is blank after trimming.
+    assert client.get("/search/?q=%20%20").status_code == 422
 
 
 def test_search_matches_band_by_name(client):

@@ -1,5 +1,5 @@
 import sqlalchemy as sa
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session, joinedload
 
 from app import schemas
@@ -26,7 +26,7 @@ def search(
 ):
     term = q.strip()
     if not term:
-        return schemas.SearchResults(query=q, bands=[], albums=[])
+        raise HTTPException(status_code=422, detail="Query must not be blank")
 
     bands = db.scalars(
         sa.select(Band)

@@ -7,18 +7,23 @@ import { Header } from "@/components/ui/header";
 export const dynamic = "force-dynamic";
 
 interface PageProps {
-  searchParams: Promise<{ q?: string }>;
+  searchParams: Promise<{ q?: string | string[] }>;
+}
+
+// Repeated `?q=` params arrive as string[]; take the first.
+function firstParam(q?: string | string[]): string {
+  return (Array.isArray(q) ? q[0] : q)?.trim() ?? "";
 }
 
 export async function generateMetadata({ searchParams }: PageProps): Promise<Metadata> {
   const { q } = await searchParams;
-  const term = q?.trim();
+  const term = firstParam(q);
   return { title: term ? `Search: ${term}` : "Search" };
 }
 
 export default async function SearchPage({ searchParams }: PageProps) {
   const { q } = await searchParams;
-  const term = q?.trim() ?? "";
+  const term = firstParam(q);
 
   if (!term) {
     return (
@@ -40,9 +45,7 @@ export default async function SearchPage({ searchParams }: PageProps) {
           Results for <span className="text-muted-foreground">&ldquo;{term}&rdquo;</span>
         </h1>
 
-        {empty && (
-          <p className="text-muted-foreground">No bands or albums match that search.</p>
-        )}
+        {empty && <p className="text-muted-foreground">No bands or albums match that search.</p>}
 
         {bands.length > 0 && (
           <section>

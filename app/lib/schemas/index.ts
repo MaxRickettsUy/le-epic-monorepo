@@ -98,6 +98,31 @@ export const bandListSchema = z.object({
   prev: z.number().nullable(),
 });
 
+/** A band matched by a catalogue search (`GET /search/`). */
+export const bandSearchItemSchema = z.object({
+  id: z.number(),
+  name: z.string(),
+  location: z.string(),
+  country: z.string(),
+});
+
+/** An album matched by a catalogue search, carrying its band for linking. */
+export const albumSearchItemSchema = z.object({
+  id: z.number(),
+  name: z.string(),
+  year: z.number().nullish(),
+  art: z.string().nullish(),
+  band_id: z.number(),
+  band_name: z.string(),
+});
+
+/** Combined search results across bands and albums (`GET /search/?q=`). */
+export const searchResultsSchema = z.object({
+  query: z.string(),
+  bands: z.array(bandSearchItemSchema),
+  albums: z.array(albumSearchItemSchema),
+});
+
 /** Write response from `POST /band/new` and `POST /release/new`. */
 export const mutationResultSchema = z.object({
   message: z.string(),
@@ -145,3 +170,6 @@ export type BandListItem = z.infer<typeof bandListItemSchema>;
 export type Band = z.infer<typeof bandSchema>;
 export type BandList = z.infer<typeof bandListSchema>;
 export type MutationResult = z.infer<typeof mutationResultSchema>;
+export type BandSearchItem = z.infer<typeof bandSearchItemSchema>;
+export type AlbumSearchItem = z.infer<typeof albumSearchItemSchema>;
+export type SearchResults = z.infer<typeof searchResultsSchema>;

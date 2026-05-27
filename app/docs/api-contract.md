@@ -60,6 +60,12 @@ the frontend depends on. The authoritative definitions live in:
 | `POST /track/{id}/update`   | `TrackCreate` | `"track updated"` |                                                 |
 | `DELETE /track/{id}/delete` | —             | `"track deleted"` |                                                 |
 
+### Search
+
+| Method & path     | Request body | Response (2xx)  | Notes                                                                                                                                                                                                                                                                            |
+| ----------------- | ------------ | --------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET /search/?q=` | —            | `SearchResults` | Case-insensitive substring match on **local** band name + `location` and album name (LIKE wildcards in `q` are escaped). `q` required and non-blank after trimming (`422` otherwise). Capped at 20 results per type. Distinct from the `/band/search*` MusicBrainz passthroughs. |
+
 ### Meta
 
 | Method & path | Response           | Notes           |
@@ -178,6 +184,38 @@ contributed (so the UI can render "why").
   track_number?: number;
   position?: number;
   mbid?: string;
+}
+```
+
+### `SearchResults` — `GET /search/?q=`
+
+```json
+{
+  query: string;              // the (trimmed) query that was run
+  bands: BandSearchItem[];
+  albums: AlbumSearchItem[];
+}
+```
+
+### `BandSearchItem`
+
+```json
+{ id: number; name: string; location: string; country: string; }
+```
+
+### `AlbumSearchItem`
+
+`band_id` / `band_name` are the owning band, so a result row can link to either
+the album (`/release/{id}`) or its band.
+
+```json
+{
+  id: number;
+  name: string;
+  year?: number;
+  art?: string;
+  band_id: number;
+  band_name: string;
 }
 ```
 

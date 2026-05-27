@@ -9,3 +9,4 @@ export {
   type MutationResult,
 } from "./bands";
 export { getRelease, createRelease, updateRelease, type ReleaseCreateInput } from "./releases";
+export { search } from "./search";

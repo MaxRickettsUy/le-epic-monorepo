@@ -5,12 +5,12 @@ import { Input } from "./input";
 import { ThemeToggle } from "./theme-toggle";
 
 const SearchInput = () => (
-  <>
+  <form action="/search" method="get" role="search">
     <label htmlFor="catalog-search" className="sr-only">
       Search the catalog
     </label>
-    <Input id="catalog-search" type="search" placeholder="Search..." />
-  </>
+    <Input id="catalog-search" name="q" type="search" placeholder="Search bands & albums..." />
+  </form>
 );
 
 export const Header = () => {

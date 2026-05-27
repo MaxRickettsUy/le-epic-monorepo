@@ -75,6 +75,22 @@ export const bandSchema = bandBaseSchema.extend({
   releases: z.array(releaseSchema),
 });
 
+/**
+ * A band scored as similar (`GET /band/{id}/similar`). `score` is a weighted
+ * sum; the remaining fields expose which factors contributed, for the UI.
+ */
+export const similarBandSchema = z.object({
+  id: z.number(),
+  name: z.string(),
+  location: z.string(),
+  country: z.string(),
+  score: z.number(),
+  shared_members: z.number(),
+  same_location: z.boolean(),
+  same_label: z.boolean(),
+  same_country: z.boolean(),
+});
+
 /** Paginated band list envelope (`GET /band/`). */
 export const bandListSchema = z.object({
   bands: z.array(bandListItemSchema),
@@ -123,6 +139,7 @@ export type Member = z.infer<typeof memberSchema>;
 export type Track = z.infer<typeof trackSchema>;
 export type Release = z.infer<typeof releaseSchema>;
 export type BandSummary = z.infer<typeof bandSummarySchema>;
+export type SimilarBand = z.infer<typeof similarBandSchema>;
 export type ReleaseDetail = z.infer<typeof releaseDetailSchema>;
 export type BandListItem = z.infer<typeof bandListItemSchema>;
 export type Band = z.infer<typeof bandSchema>;

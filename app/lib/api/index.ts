@@ -2,6 +2,7 @@ export { ApiError, ApiParseError } from "./client";
 export {
   listBands,
   getBand,
+  getSimilarBands,
   createBand,
   updateBand,
   type BandCreateInput,

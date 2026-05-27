@@ -1,8 +1,9 @@
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
-import { getBand } from "@/lib/api";
+import { getBand, getSimilarBands } from "@/lib/api";
 import { DiscographyTable } from "./discog";
 import { MemberTable } from "./members";
+import { SimilarArtistsTable } from "./similar";
 import { Header } from "@/components/ui/header";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TopSection } from "@/components/TopSection";
@@ -28,6 +29,7 @@ export default async function BandPage({ params }: PageProps) {
 
   if (!band) notFound();
 
+  const similar = await getSimilarBands(bandId);
   const releases = [...band.releases].sort((a, b) => (a.year ?? 0) - (b.year ?? 0));
 
   return (
@@ -39,12 +41,16 @@ export default async function BandPage({ params }: PageProps) {
           <TabsList>
             <TabsTrigger value="discography">Discography</TabsTrigger>
             <TabsTrigger value="members">Members</TabsTrigger>
+            <TabsTrigger value="similar">Similar Artists</TabsTrigger>
           </TabsList>
           <TabsContent className="w-full" value="discography">
             <DiscographyTable releases={releases} />
           </TabsContent>
           <TabsContent value="members">
             <MemberTable members={band.members} />
+          </TabsContent>
+          <TabsContent className="w-full" value="similar">
+            <SimilarArtistsTable bands={similar} />
           </TabsContent>
         </Tabs>
       </div>

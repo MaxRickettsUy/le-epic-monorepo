@@ -31,15 +31,16 @@ the frontend depends on. The authoritative definitions live in:
 
 ### Bands
 
-| Method & path                     | Request body | Response (2xx)                      | Notes                                                                                                                   |
-| --------------------------------- | ------------ | ----------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
-| `GET /band/`                      | —            | `BandList`                          | `?page=` (1-based), `bands_per_page` from backend settings. `?sort=` is `name` (default) or `recent` (created_at desc). |
-| `GET /band/{id}`                  | —            | `BandDetail`                        | `404` → `null`. Eager-loads `releases` + `members`.                                                                     |
-| `POST /band/new`                  | `BandCreate` | `{ message: string, id: number }`   |                                                                                                                         |
-| `POST /band/{id}/update`          | `BandCreate` | `"band updated"` (bare JSON string) | `404` if missing.                                                                                                       |
-| `DELETE /band/{id}/delete`        | —            | `"band deleted"`                    | Not used by the frontend yet.                                                                                           |
-| `GET /band/search?name=`          | —            | MusicBrainz passthrough             | `503` on upstream error. Not wired into UI yet.                                                                         |
-| `GET /band/search_releases?mbid=` | —            | MusicBrainz passthrough             | `404` / `503`. Not wired into UI yet.                                                                                   |
+| Method & path                     | Request body | Response (2xx)                      | Notes                                                                                                                                                                                              |
+| --------------------------------- | ------------ | ----------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET /band/`                      | —            | `BandList`                          | `?page=` (1-based), `bands_per_page` from backend settings. `?sort=` is `name` (default) or `recent` (created_at desc).                                                                            |
+| `GET /band/{id}`                  | —            | `BandDetail`                        | `404` → `null`. Eager-loads `releases` + `members`.                                                                                                                                                |
+| `GET /band/{id}/similar`          | —            | `SimilarBand[]`                     | Weighted score over shared members, `location`, `label`, `country` (see `band/routes.py` `SIMILARITY_WEIGHTS`). Self excluded, score-desc then name, capped at `bands_per_page`. `404` if missing. |
+| `POST /band/new`                  | `BandCreate` | `{ message: string, id: number }`   |                                                                                                                                                                                                    |
+| `POST /band/{id}/update`          | `BandCreate` | `"band updated"` (bare JSON string) | `404` if missing.                                                                                                                                                                                  |
+| `DELETE /band/{id}/delete`        | —            | `"band deleted"`                    | Not used by the frontend yet.                                                                                                                                                                      |
+| `GET /band/search?name=`          | —            | MusicBrainz passthrough             | `503` on upstream error. Not wired into UI yet.                                                                                                                                                    |
+| `GET /band/search_releases?mbid=` | —            | MusicBrainz passthrough             | `404` / `503`. Not wired into UI yet.                                                                                                                                                              |
 
 ### Releases
 
@@ -110,6 +111,25 @@ use `.nullish()`, accepting `null` and `undefined`.
 
 ```json
 { name: string; role?: string; }
+```
+
+### `SimilarBand` — `GET /band/{id}/similar`
+
+`score` is the weighted sum; the remaining fields expose which factors
+contributed (so the UI can render "why").
+
+```json
+{
+  id: number;
+  name: string;
+  location: string;
+  country: string;
+  score: number;
+  shared_members: number;
+  same_location: boolean;
+  same_label: boolean;
+  same_country: boolean;
+}
 ```
 
 ### `Release` (nested under a band)

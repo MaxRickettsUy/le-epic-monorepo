@@ -14,6 +14,9 @@ export type {
   Band,
   BandList,
   MutationResult,
+  BandSearchItem,
+  AlbumSearchItem,
+  SearchResults,
 } from "./schemas";
 
 // Reviews are out of MVP and not returned by the backend yet, so these have no

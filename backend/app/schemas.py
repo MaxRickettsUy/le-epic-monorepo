@@ -153,3 +153,34 @@ class BandCreate(BaseInput):
     location: str
     country: str
     label: str
+
+
+# --- Search ----------------------------------------------------------------
+
+
+class BandSearchItem(ORMModel):
+    """A band matched by a catalogue search."""
+
+    id: int
+    name: str
+    location: str
+    country: str
+
+
+class AlbumSearchItem(ORMModel):
+    """An album matched by a catalogue search, carrying its band for linking."""
+
+    id: int
+    name: str
+    year: int | None = None
+    art: str | None = None
+    band_id: int
+    band_name: str
+
+
+class SearchResults(BaseModel):
+    """Combined results of a catalogue search across bands and albums."""
+
+    query: str
+    bands: list[BandSearchItem]
+    albums: list[AlbumSearchItem]

@@ -10,7 +10,8 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
 from app.database import Base
-from app.models import Album, Band, BandMember, Member
+from app.genres import CURATED_GENRES
+from app.models import Album, Band, BandGenre, BandMember, Genre, Member
 from seed import cover_art
 from seed.mb_dump import MEMBER_OF_BAND_GID, run_seed
 
@@ -33,7 +34,10 @@ CREATE TABLE link_attribute (link INTEGER, attribute_type INTEGER);
 MB_DATA = [
     # Global areas.
     "INSERT INTO area VALUES (1,'United States'),(2,'United Kingdom'),(3,'Japan')",
-    "INSERT INTO tag VALUES (1,'hardcore punk'),(2,'indie')",
+    # tag 1 is the scope tag; 3-5 are curated sub-genres (4 is an alias of 3);
+    # 2 and 6 are non-curated and must be ignored.
+    "INSERT INTO tag VALUES "
+    "(1,'hardcore punk'),(2,'indie'),(3,'youth crew'),(4,'youthcrew'),(5,'d-beat'),(6,'emo')",
     # Bands: Minor Threat (US, split-up), Discharge (UK, active), GauZe (JP),
     # plus an off-genre band that must be excluded.
     "INSERT INTO artist VALUES "
@@ -44,7 +48,11 @@ MB_DATA = [
     # Member persons (also artists, but untagged so not seeded as bands).
     "(20,'ian-gid','Ian MacKaye',1,0,NULL,NULL),"
     "(21,'cal-gid','Cal Morris',2,0,NULL,NULL)",
-    "INSERT INTO artist_tag VALUES (10,1,5),(11,1,3),(12,1,2),(99,2,4)",
+    "INSERT INTO artist_tag VALUES (10,1,5),(11,1,3),(12,1,2),(99,2,4),"
+    # Sub-genre tags: Minor Threat -> youth crew (votes 7) + the 'youthcrew'
+    # alias (votes 3, same genre) + 'emo' (non-curated). Discharge -> d-beat.
+    # GauZe gets none. Indie Co (99) is off-genre and not seeded at all.
+    "(10,3,7),(10,4,3),(10,6,2),(11,5,9)",
     # artist_credit ids reuse the artist id + 100 for clarity.
     "INSERT INTO artist_credit_name VALUES (110,10,0),(111,11,0),(112,12,0)",
     "INSERT INTO release_group_primary_type VALUES (1,'Album'),(3,'EP')",
@@ -135,6 +143,35 @@ def test_seed_is_idempotent(mb_engine, app_session):
     assert stats2.bands_inserted == 0
     assert stats2.bands_updated == 3
     assert stats2.links_inserted == 0
+
+
+def test_seed_links_curated_subgenres(mb_engine, app_session):
+    stats = run_seed(mb_engine, app_session, tag="hardcore punk")
+
+    # The whole curated vocabulary is upserted regardless of usage.
+    assert app_session.query(Genre).count() == len(CURATED_GENRES)
+
+    # Minor Threat -> youth-crew (the 'youthcrew' alias collapses in, 'emo' is
+    # dropped); Discharge -> d-beat; GauZe -> nothing.
+    bands = {b.name: b for b in app_session.query(Band).all()}
+    mt_genres = {g.slug: g.vote_count for g in bands["Minor Threat"].genres}
+    assert mt_genres == {"youth-crew": 7}  # max of the two aliases (7 vs 3)
+    assert {g.slug for g in bands["Discharge"].genres} == {"d-beat"}
+    assert bands["GauZe"].genres == []
+
+    # Two distinct (band, genre) links created; no double-count from the alias.
+    assert stats.genres_linked == 2
+    assert app_session.query(BandGenre).count() == 2
+
+
+def test_seed_subgenres_idempotent(mb_engine, app_session):
+    run_seed(mb_engine, app_session, tag="hardcore punk")
+    stats2 = run_seed(mb_engine, app_session, tag="hardcore punk")
+
+    assert app_session.query(Genre).count() == len(CURATED_GENRES)
+    assert app_session.query(BandGenre).count() == 2
+    assert stats2.genres_linked == 0
+    assert stats2.genre_links_updated == 0
 
 
 def test_cover_art_sets_only_found_art(mb_engine, app_session):

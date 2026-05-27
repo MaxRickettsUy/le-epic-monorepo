@@ -1,0 +1,34 @@
+"""Curated hardcore sub-genre vocabulary.
+
+This module is the **single source of truth** for the sub-genre list. The `genre`
+table is seeded from it (a queryable cache), not the other way around. MusicBrainz
+`artist_tag` values are free-form and noisy, so each curated genre carries the set of
+lowercased MB tag aliases that should map onto it; the seed funnels raw tags through
+`ALIAS_TO_SLUG` and drops anything not curated.
+
+See `plans/subgenres.md`. The draft list is not yet locked — extend before seeding.
+"""
+
+# slug -> (display name, {lowercased MB tag aliases that map to this genre})
+CURATED_GENRES: dict[str, tuple[str, set[str]]] = {
+    "nyhc": ("NYHC", {"nyhc", "new york hardcore", "n.y.h.c."}),
+    "youth-crew": ("Youth Crew", {"youth crew", "youthcrew"}),
+    "melodic-hardcore": ("Melodic Hardcore", {"melodic hardcore"}),
+    "beatdown": ("Beatdown", {"beatdown", "beatdown hardcore"}),
+    "powerviolence": ("Powerviolence", {"powerviolence", "power violence"}),
+    "metalcore": ("Metalcore", {"metalcore"}),
+    "post-hardcore": ("Post-Hardcore", {"post-hardcore", "post hardcore"}),
+    "d-beat": ("D-beat", {"d-beat", "dbeat", "d beat"}),
+    "crust": ("Crust Punk", {"crust", "crust punk", "crustcore"}),
+    "straight-edge": ("Straight Edge", {"straight edge", "sxe", "straightedge"}),
+}
+
+# Reverse lookup: lowercased MB tag alias -> curated slug. Built once at import.
+ALIAS_TO_SLUG: dict[str, str] = {
+    alias: slug for slug, (_name, aliases) in CURATED_GENRES.items() for alias in aliases
+}
+
+
+def slug_for_tag(tag: str) -> str | None:
+    """Map a raw MusicBrainz tag to a curated genre slug, or None if not curated."""
+    return ALIAS_TO_SLUG.get(tag.strip().lower())

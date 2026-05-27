@@ -48,6 +48,11 @@ class Band(TimestampMixin, Base):
         cascade="all, delete-orphan",
         passive_deletes=True,
     )
+    genres: so.Mapped[list["BandGenre"]] = so.relationship(
+        back_populates="band",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+    )
 
 
 class Album(TimestampMixin, Base):
@@ -108,6 +113,53 @@ class Member(TimestampMixin, Base):
         cascade="all, delete-orphan",
         passive_deletes=True,
     )
+
+
+class Genre(TimestampMixin, Base):
+    """A curated hardcore sub-genre (e.g. NYHC, youth crew).
+
+    Rows are seeded from `app.genres.CURATED_GENRES`, which is the source of
+    truth; this table is a queryable cache of that vocabulary.
+    """
+
+    __tablename__ = "genre"
+
+    id: so.Mapped[int] = so.mapped_column(primary_key=True)
+    slug: so.Mapped[str] = so.mapped_column(sa.String(50), index=True, unique=True)
+    name: so.Mapped[str] = so.mapped_column(sa.String(100))
+
+    band_links: so.Mapped[list["BandGenre"]] = so.relationship(
+        back_populates="genre",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+    )
+
+
+class BandGenre(TimestampMixin, Base):
+    """Association between a Band and a Genre, carrying the MB tag vote count."""
+
+    __tablename__ = "band_genre"
+
+    band_id: so.Mapped[int] = so.mapped_column(
+        sa.ForeignKey("band.id", ondelete="CASCADE"), primary_key=True
+    )
+    genre_id: so.Mapped[int] = so.mapped_column(
+        sa.ForeignKey("genre.id", ondelete="CASCADE"), primary_key=True
+    )
+    # MusicBrainz tag vote count; lets us rank a band's primary genre / facets.
+    vote_count: so.Mapped[int] = so.mapped_column(sa.Integer(), default=0, server_default="0")
+
+    band: so.Mapped["Band"] = so.relationship(back_populates="genres")
+    genre: so.Mapped["Genre"] = so.relationship(back_populates="band_links")
+
+    @property
+    def slug(self) -> str:
+        # Lets the {slug, name} response schema validate straight off the link.
+        return self.genre.slug
+
+    @property
+    def name(self) -> str:
+        return self.genre.name
 
 
 class BandMember(TimestampMixin, Base):

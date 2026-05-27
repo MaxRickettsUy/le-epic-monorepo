@@ -56,3 +56,54 @@ def test_vote_count_defaults_to_zero(db):
     db.add(BandGenre(band=band, genre=genre))
     db.commit()
     assert db.get(Band, band.id).genres[0].vote_count == 0
+
+
+# --- Step 3: genres on the band API (list + detail) ------------------------
+
+
+def _seed_band_with_genres(db, *links):
+    """links: (slug, name, vote_count) tuples. Returns the band id."""
+    band = Band(
+        name="Bold", status="split-up", location="New York", country="US", label="Revelation"
+    )
+    db.add(band)
+    db.flush()
+    for slug, name, votes in links:
+        genre = Genre(slug=slug, name=name)
+        db.add(genre)
+        db.flush()
+        db.add(BandGenre(band=band, genre=genre, vote_count=votes))
+    db.commit()
+    return band.id
+
+
+def test_detail_exposes_genres_ordered_by_votes(client, db):
+    band_id = _seed_band_with_genres(db, ("nyhc", "NYHC", 2), ("youth-crew", "Youth Crew", 9))
+    body = client.get(f"/band/{band_id}").json()
+    # Strongest-voted genre first; only {slug, name} is exposed.
+    assert body["genres"] == [
+        {"slug": "youth-crew", "name": "Youth Crew"},
+        {"slug": "nyhc", "name": "NYHC"},
+    ]
+
+
+def test_list_includes_genres(client, db):
+    band_id = _seed_band_with_genres(db, ("nyhc", "NYHC", 1))
+    item = next(b for b in client.get("/band/").json()["bands"] if b["id"] == band_id)
+    assert item["genres"] == [{"slug": "nyhc", "name": "NYHC"}]
+
+
+def test_band_without_genres_returns_empty_list(client):
+    band_id = client.post(
+        "/band/new",
+        json={
+            "name": "Minor Threat",
+            "status": "split-up",
+            "location": "Washington, D.C.",
+            "country": "US",
+            "label": "Dischord",
+        },
+    ).json()["id"]
+    assert client.get(f"/band/{band_id}").json()["genres"] == []
+    item = client.get("/band/").json()["bands"][0]
+    assert item["genres"] == []

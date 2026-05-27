@@ -34,8 +34,8 @@ the frontend depends on. The authoritative definitions live in:
 | Method & path                     | Request body | Response (2xx)                      | Notes                                                                                                                                                                                              |
 | --------------------------------- | ------------ | ----------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `GET /band/`                      | —            | `BandList`                          | `?page=` (1-based), `bands_per_page` from backend settings. `?sort=` is `name` (default) or `recent` (created_at desc).                                                                            |
-| `GET /band/{id}`                  | —            | `BandDetail`                        | `404` → `null`. Eager-loads `releases` + `members`.                                                                                                                                                |
-| `GET /band/{id}/similar`          | —            | `SimilarBand[]`                     | Weighted score over shared members, `location`, `label`, `country` (see `band/routes.py` `SIMILARITY_WEIGHTS`). Self excluded, score-desc then name, capped at `bands_per_page`. `404` if missing. |
+| `GET /band/{id}`                  | —            | `BandDetail`                        | `404` → `null`. Eager-loads `releases` + `members` + `genres`.                                                                                                                                                |
+| `GET /band/{id}/similar`          | —            | `SimilarBand[]`                     | Weighted score over shared members, `location`, shared genres, `label`, `country` (see `band/routes.py` `SIMILARITY_WEIGHTS`). Self excluded, score-desc then name, capped at `bands_per_page`. `404` if missing. |
 | `POST /band/new`                  | `BandCreate` | `{ message: string, id: number }`   |                                                                                                                                                                                                    |
 | `POST /band/{id}/update`          | `BandCreate` | `"band updated"` (bare JSON string) | `404` if missing.                                                                                                                                                                                  |
 | `DELETE /band/{id}/delete`        | —            | `"band deleted"`                    | Not used by the frontend yet.                                                                                                                                                                      |
@@ -64,7 +64,7 @@ the frontend depends on. The authoritative definitions live in:
 
 | Method & path     | Request body | Response (2xx)  | Notes                                                                                                                                                                                                                                                                            |
 | ----------------- | ------------ | --------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `GET /search/?q=` | —            | `SearchResults` | Case-insensitive substring match on **local** band name + `location` and album name (LIKE wildcards in `q` are escaped). `q` required and non-blank after trimming (`422` otherwise). Capped at 20 results per type. Distinct from the `/band/search*` MusicBrainz passthroughs. |
+| `GET /search/?q=` | —            | `SearchResults` | Case-insensitive substring match on **local** band name + `location` + genre name, and album name (LIKE wildcards in `q` are escaped). `q` required and non-blank after trimming (`422` otherwise). Optional `?genre=<slug>` restricts band results to that curated slug. Capped at 20 results per type. Distinct from the `/band/search*` MusicBrainz passthroughs. |
 
 ### Meta
 
@@ -102,7 +102,17 @@ use `.nullish()`, accepting `null` and `undefined`.
   mbid?: string;
   begin_year?: number;  // year formed (from MB artist.begin_date_year); year-only
   end_year?: number;    // year disbanded (from MB artist.end_date_year); null if active/unknown
+  genres: Genre[];       // curated sub-genres, strongest-voted first; [] if none
 }
+```
+
+### `Genre`
+
+A curated hardcore sub-genre. `slug` is the stable id (e.g. `nyhc`), `name` the
+display label (e.g. `NYHC`).
+
+```json
+{ slug: string; name: string; }
 ```
 
 ### `BandDetail` — `GET /band/{id}` (extends `BandBase`)
@@ -134,6 +144,7 @@ contributed (so the UI can render "why").
   country: string;
   score: number;
   shared_members: number;
+  shared_genres: number;
   same_location: boolean;
   same_label: boolean;
   same_country: boolean;
@@ -202,7 +213,13 @@ contributed (so the UI can render "why").
 ### `BandSearchItem`
 
 ```json
-{ id: number; name: string; location: string; country: string; }
+{
+  id: number;
+  name: string;
+  location: string;
+  country: string;
+  genres: Genre[];        // curated sub-genres, strongest-voted first; [] if none
+}
 ```
 
 ### `AlbumSearchItem`

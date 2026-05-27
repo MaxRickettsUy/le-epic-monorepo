@@ -2,8 +2,15 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import Link from "next/link";
 import Image from "next/image";
 import { Button } from "./ui/button";
+import { GenreBadges } from "./GenreBadges";
+import type { Genre } from "@/lib/types";
 
-export const TopSection = (props: { id: number; name: string; picture?: string | null }) => {
+export const TopSection = (props: {
+  id: number;
+  name: string;
+  picture?: string | null;
+  genres?: Genre[];
+}) => {
   return (
     <div className="flex flex-col items-center justify-between gap-[1rem] md:flex-row md:items-start">
       <div className="flex flex-col gap-[1rem]">
@@ -11,6 +18,9 @@ export const TopSection = (props: { id: number; name: string; picture?: string |
           <CardHeader>
             <CardTitle>{props.name}</CardTitle>
             <CardDescription>Insert City Hardcore</CardDescription>
+            {props.genres && props.genres.length > 0 && (
+              <GenreBadges genres={props.genres} className="flex flex-wrap gap-1.5 pt-1" />
+            )}
           </CardHeader>
           <CardContent>
             {props.picture ? (

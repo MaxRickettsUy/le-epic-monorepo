@@ -58,22 +58,45 @@ persists none of the other tags. The DB has **no genre column** today.
   ~100GB MB Postgres on port 5433) was **not** executed here — that's the one-time host
   step that actually populates existing bands.
 
-### Step 3 — API + contract + zod
-- `app/schemas.py`: `GenreOut {slug, name}`; add `genres: list[GenreOut] = []` to
-  `BandBase` (appears on list items + detail). Eager-load `Band.genres→genre` in the band
-  routes' `selectinload`.
-- Mirror in `app/lib/schemas/index.ts` (zod) + update `app/docs/api-contract.md` (the
-  established change-backend-schema → update-zod+contract loop).
+### Step 3 — API + contract + zod  ✅ DONE (2026-05-27)
+- ✅ `app/schemas.py`: `GenreOut {slug, name}`; `genres: list[GenreOut] = []` on `BandBase`
+  (so it appears on list items + detail). `Band.genres` relationship now `order_by`
+  `vote_count` desc, so the primary sub-genre serializes first (deterministic for tests).
+- ✅ Eager-load `Band.genres→genre` via `selectinload` in both band routes (`get_all` list
+  + `get` detail).
+- ✅ Mirrored in `app/lib/schemas/index.ts` (`genreSchema`, `genres` on `bandBaseSchema`,
+  `Genre` type) + updated `app/docs/api-contract.md` (`Genre` shape, `BandBase` field,
+  detail eager-load note).
+- ✅ Tests in `tests/test_genres.py`: genres on detail ordered by votes, on list items,
+  and `[]` when a band has none. **41 tests pass.**
 
-### Step 4 — Frontend display
-- Band detail (`TopSection`): genre badges (`components/ui/badge.tsx`) under the name.
-- `BandCard`: optional top 1–2 genres. Search results rows: genre badges.
+### Step 4 — Frontend display  ✅ DONE (2026-05-27)
+- ✅ Reusable `components/GenreBadges.tsx` (strongest-voted first; optional `limit`;
+  renders nothing when empty) wraps `components/ui/badge.tsx` (`secondary` variant).
+- ✅ Band detail (`TopSection`): badges under the name (band page passes `band.genres`).
+- ✅ `BandCard`: top 2 genres (`limit={2}`) under the location.
+- ✅ Search band rows: badges beside the name. Required adding `genres` to
+  `BandSearchItem` (schemas.py + zod + contract) and a `selectinload` in the search route,
+  since search rows previously carried no genres.
+- ✅ Tests: search rows carry genres ordered by votes, and default to `[]`. **43 backend
+  tests pass; frontend typecheck + lint clean.**
 
-### Step 5 — Search facet + similarity factor
-- Extend `/search` with optional `?genre=<slug>` filter (join `band_genre`); optionally
-  fold genre-name matches into the band `OR`.
-- Add `"shared_genre"` to `SIMILARITY_WEIGHTS` in `band/routes.py` — count shared genres
-  via the same subquery shape as `shared_members`; expose in `SimilarBand` "why" fields.
+### Step 5 — Search facet + similarity factor  ✅ DONE (2026-05-27)
+- ✅ `/search` takes optional `?genre=<slug>`: bands restricted to that curated slug via
+  `Band.genres.any(BandGenre.genre.has(Genre.slug == ...))`. Also folded genre-name
+  matches into the band text `OR`, so `?q=youth` matches a youth-crew band by genre.
+- ✅ Added `"shared_genre": 3` to `SIMILARITY_WEIGHTS` (between location and label); count
+  shared genres with the same correlated-subquery shape as `shared_members`. Exposed as
+  `shared_genres` on `SimilarBand` (schema + zod + contract) and rendered in the "why"
+  badges (`similar.tsx`).
+- ✅ Tests: shared-genre scoring (`test_band.py`), genre facet restricts results + unknown
+  slug empty + genre-name text match (`test_search.py`). **46 backend tests pass;
+  frontend typecheck + lint + prettier clean.**
+
+## Status: all five steps complete. Remaining one-time host work is the real
+`python -m seed.mb_dump` run against the MB Postgres (step 2 ⚠️), which populates
+genres on existing bands; until then the tables are empty and the UI degrades to
+no badges / empty facet, by design.
 
 ## Draft curated list (step 1; not yet locked — see open question 1)
 nyhc, youth-crew, melodic-hardcore, beatdown, powerviolence, metalcore, post-hardcore,

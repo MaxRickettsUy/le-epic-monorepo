@@ -36,7 +36,12 @@ export default async function BandPage({ params }: PageProps) {
     <main className="flex flex-col pb-[1rem]">
       <Header />
       <div className="flex flex-col gap-[1rem] p-4 md:flex-row">
-        <TopSection id={band.id} name={band.name} picture={band.band_picture} />
+        <TopSection
+          id={band.id}
+          name={band.name}
+          picture={band.band_picture}
+          genres={band.genres}
+        />
         <Tabs defaultValue="discography" className="w-full p-4">
           <TabsList>
             <TabsTrigger value="discography">Discography</TabsTrigger>

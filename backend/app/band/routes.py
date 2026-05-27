@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session, selectinload
 
 from app import schemas
 from app.database import get_db
-from app.models import Band, BandMember
+from app.models import Band, BandGenre, BandMember
 from app.services import musicbrainz
 from app.settings import settings
 
@@ -20,6 +20,7 @@ router = APIRouter()
 SIMILARITY_WEIGHTS = {
     "shared_member": 5,  # per member the two bands have in common
     "location": 4,  # same local scene
+    "shared_genre": 3,  # per curated sub-genre the two bands have in common
     "label": 2,  # same record label
     "country": 1,  # same country (weak tie-breaker)
 }
@@ -40,7 +41,11 @@ def get_all(
         else (Band.name.asc(), Band.id.asc())
     )
     bands = db.scalars(
-        sa.select(Band).order_by(*order).offset((page - 1) * per_page).limit(per_page)
+        sa.select(Band)
+        .options(selectinload(Band.genres).selectinload(BandGenre.genre))
+        .order_by(*order)
+        .offset((page - 1) * per_page)
+        .limit(per_page)
     ).all()
 
     has_next = page * per_page < total
@@ -84,6 +89,7 @@ def get(id: int, db: Session = Depends(get_db)):
         .options(
             selectinload(Band.releases),
             selectinload(Band.members).selectinload(BandMember.member),
+            selectinload(Band.genres).selectinload(BandGenre.genre),
         )
         .where(Band.id == id)
     )
@@ -112,6 +118,18 @@ def get_similar(id: int, db: Session = Depends(get_db)):
         .scalar_subquery()
     )
 
+    # How many curated sub-genres each candidate shares with this band.
+    target_genre_ids = (
+        sa.select(BandGenre.genre_id).where(BandGenre.band_id == band.id).scalar_subquery()
+    )
+    shared_genres = (
+        sa.select(sa.func.count())
+        .select_from(BandGenre)
+        .where(BandGenre.band_id == Band.id, BandGenre.genre_id.in_(target_genre_ids))
+        .correlate(Band)
+        .scalar_subquery()
+    )
+
     # Per-factor 0/1 flags (label only counts when it is actually set).
     same_location = sa.case((Band.location == band.location, 1), else_=0)
     same_label = sa.case(((Band.label == band.label) & (Band.label != ""), 1), else_=0)
@@ -120,6 +138,7 @@ def get_similar(id: int, db: Session = Depends(get_db)):
     score = (
         w["shared_member"] * shared_members
         + w["location"] * same_location
+        + w["shared_genre"] * shared_genres
         + w["label"] * same_label
         + w["country"] * same_country
     )
@@ -128,6 +147,7 @@ def get_similar(id: int, db: Session = Depends(get_db)):
         sa.select(
             Band,
             shared_members.label("shared_members"),
+            shared_genres.label("shared_genres"),
             same_location.label("same_location"),
             same_label.label("same_label"),
             same_country.label("same_country"),
@@ -146,11 +166,12 @@ def get_similar(id: int, db: Session = Depends(get_db)):
             country=cand.country,
             score=total,
             shared_members=members,
+            shared_genres=genres,
             same_location=bool(loc),
             same_label=bool(label),
             same_country=bool(country),
         )
-        for cand, members, loc, label, country, total in rows
+        for cand, members, genres, loc, label, country, total in rows
     ]
 
 

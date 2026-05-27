@@ -52,6 +52,8 @@ class Band(TimestampMixin, Base):
         back_populates="band",
         cascade="all, delete-orphan",
         passive_deletes=True,
+        # Strongest-voted (primary) sub-genre first; deterministic for the API.
+        order_by="desc(BandGenre.vote_count)",
     )
 
 

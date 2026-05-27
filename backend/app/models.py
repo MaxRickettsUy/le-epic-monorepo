@@ -33,6 +33,8 @@ class Band(TimestampMixin, Base):
     country: so.Mapped[str] = so.mapped_column(sa.String(100))
     label: so.Mapped[str] = so.mapped_column(sa.String(100))
     mbid: so.Mapped[str | None] = so.mapped_column(sa.String(36), index=True, unique=True)
+    begin_year: so.Mapped[int | None] = so.mapped_column(sa.Integer())
+    end_year: so.Mapped[int | None] = so.mapped_column(sa.Integer())
 
     # Attribute kept as `releases` so the API/JSON shape is unchanged even
     # though the underlying model/table is now Album.

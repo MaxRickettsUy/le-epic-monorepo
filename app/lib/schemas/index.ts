@@ -64,6 +64,8 @@ const bandBaseSchema = z.object({
   country: z.string(),
   label: z.string(),
   mbid: z.string().nullish(),
+  begin_year: z.number().nullish(),
+  end_year: z.number().nullish(),
 });
 
 /** Band as returned in the paginated list (`GET /band/`). */

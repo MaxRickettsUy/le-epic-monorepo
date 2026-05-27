@@ -16,7 +16,7 @@ from seed.mb_dump import MEMBER_OF_BAND_GID, run_seed
 
 MB_SCHEMA = """
 CREATE TABLE area (id INTEGER PRIMARY KEY, name TEXT);
-CREATE TABLE artist (id INTEGER PRIMARY KEY, gid TEXT, name TEXT, area INTEGER, ended INTEGER);
+CREATE TABLE artist (id INTEGER PRIMARY KEY, gid TEXT, name TEXT, area INTEGER, ended INTEGER, begin_date_year INTEGER, end_date_year INTEGER);
 CREATE TABLE tag (id INTEGER PRIMARY KEY, name TEXT);
 CREATE TABLE artist_tag (artist INTEGER, tag INTEGER, count INTEGER);
 CREATE TABLE artist_credit_name (artist_credit INTEGER, artist INTEGER, position INTEGER);
@@ -37,13 +37,13 @@ MB_DATA = [
     # Bands: Minor Threat (US, split-up), Discharge (UK, active), GauZe (JP),
     # plus an off-genre band that must be excluded.
     "INSERT INTO artist VALUES "
-    "(10,'mt-gid','Minor Threat',1,1),"
-    "(11,'dis-gid','Discharge',2,0),"
-    "(12,'gauze-gid','GauZe',3,0),"
-    "(99,'indie-gid','Indie Co',1,0),"
+    "(10,'mt-gid','Minor Threat',1,1,1980,1983),"
+    "(11,'dis-gid','Discharge',2,0,1977,NULL),"
+    "(12,'gauze-gid','GauZe',3,0,NULL,NULL),"
+    "(99,'indie-gid','Indie Co',1,0,NULL,NULL),"
     # Member persons (also artists, but untagged so not seeded as bands).
-    "(20,'ian-gid','Ian MacKaye',1,0),"
-    "(21,'cal-gid','Cal Morris',2,0)",
+    "(20,'ian-gid','Ian MacKaye',1,0,NULL,NULL),"
+    "(21,'cal-gid','Cal Morris',2,0,NULL,NULL)",
     "INSERT INTO artist_tag VALUES (10,1,5),(11,1,3),(12,1,2),(99,2,4)",
     # artist_credit ids reuse the artist id + 100 for clarity.
     "INSERT INTO artist_credit_name VALUES (110,10,0),(111,11,0),(112,12,0)",
@@ -109,6 +109,9 @@ def test_seed_populates_bands_albums_members(mb_engine, app_session):
     assert bands["Minor Threat"].status == "split-up"
     assert bands["Discharge"].status == "active"
     assert bands["GauZe"].country == "Japan"
+    assert (bands["Minor Threat"].begin_year, bands["Minor Threat"].end_year) == (1980, 1983)
+    assert (bands["Discharge"].begin_year, bands["Discharge"].end_year) == (1977, None)
+    assert (bands["GauZe"].begin_year, bands["GauZe"].end_year) == (None, None)
 
     mt = bands["Minor Threat"]
     assert {a.name for a in mt.releases} == {"Out of Step"}

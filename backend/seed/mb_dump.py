@@ -37,7 +37,8 @@ MEMBER_OF_BAND_GID = "5be4c609-9afa-4ea0-910b-12ffb71e3821"
 _ARTIST_SQL = text(
     """
     SELECT a.id AS artist_id, a.gid AS mbid, a.name AS name,
-           ar.name AS area_name, a.ended AS ended
+           ar.name AS area_name, a.ended AS ended,
+           a.begin_date_year AS begin_year, a.end_date_year AS end_year
     FROM artist a
     JOIN artist_tag atag ON atag.artist = a.id
     JOIN tag t ON t.id = atag.tag
@@ -132,6 +133,8 @@ def run_seed(mb_engine: Engine, app_session: Session, *, tag: str | None = None)
                 stats.bands_updated += 1
             band.name = row["name"]
             band.status = _status_from_ended(row["ended"])
+            band.begin_year = row["begin_year"]
+            band.end_year = row["end_year"]
             band.location = area
             band.country = area
             band.label = band.label or ""

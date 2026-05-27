@@ -110,6 +110,8 @@ class BandBase(ORMModel):
     country: str
     label: str
     mbid: str | None = None
+    begin_year: int | None = None
+    end_year: int | None = None
 
 
 class BandListItem(BandBase):

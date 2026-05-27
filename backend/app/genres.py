@@ -23,9 +23,12 @@ CURATED_GENRES: dict[str, tuple[str, set[str]]] = {
     "straight-edge": ("Straight Edge", {"straight edge", "sxe", "straightedge"}),
 }
 
-# Reverse lookup: lowercased MB tag alias -> curated slug. Built once at import.
+# Reverse lookup: lowercased MB tag alias (and the slug itself) -> curated slug.
+# Built once at import; mapping the slug to itself lets slug forms resolve too.
 ALIAS_TO_SLUG: dict[str, str] = {
-    alias: slug for slug, (_name, aliases) in CURATED_GENRES.items() for alias in aliases
+    key: slug
+    for slug, (_name, aliases) in CURATED_GENRES.items()
+    for key in (slug, *aliases)
 }
 
 

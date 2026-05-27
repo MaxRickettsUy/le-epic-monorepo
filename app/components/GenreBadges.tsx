@@ -15,7 +15,7 @@ export const GenreBadges = ({
   limit?: number;
   className?: string;
 }) => {
-  const shown = limit ? genres.slice(0, limit) : genres;
+  const shown = limit !== undefined ? genres.slice(0, limit) : genres;
   if (shown.length === 0) return null;
   return (
     <div className={className ?? "flex flex-wrap gap-1.5"}>

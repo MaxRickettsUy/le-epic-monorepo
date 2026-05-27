@@ -47,9 +47,12 @@ def upgrade():
         sa.Column("created_at", sa.DateTime(timezone=True), server_default=NOW, nullable=False),
         sa.Column("updated_at", sa.DateTime(timezone=True), server_default=NOW, nullable=False),
     )
+    # Composite PK leads with band_id; index genre_id for facet/similarity lookups.
+    op.create_index("ix_band_genre_genre_id", "band_genre", ["genre_id"])
 
 
 def downgrade():
+    op.drop_index("ix_band_genre_genre_id", table_name="band_genre")
     op.drop_table("band_genre")
     op.drop_index("ix_genre_slug", table_name="genre")
     op.drop_table("genre")

@@ -108,6 +108,8 @@ class SeedStats:
             "members_inserted": self.members_inserted,
             "links_inserted": self.links_inserted,
             "links_updated": self.links_updated,
+            "genres_linked": self.genres_linked,
+            "genre_links_updated": self.genre_links_updated,
             "skipped": len(self.skipped),
         }
 
@@ -125,9 +127,25 @@ def run_seed(mb_engine: Engine, app_session: Session, *, tag: str | None = None)
     stats = SeedStats()
 
     with mb_engine.connect() as mb:
+        # --- Genres (curated vocabulary) --------------------------------
+        # Upsert the curated vocabulary (idempotent by slug); CURATED_GENRES
+        # is the source of truth, this table a cache of it. Run before the
+        # no-artists early return so the vocabulary is seeded regardless.
+        existing_genres = {g.slug: g for g in app_session.query(Genre)}
+        for slug, (name, _aliases) in CURATED_GENRES.items():
+            genre = existing_genres.get(slug)
+            if genre is None:
+                genre = Genre(slug=slug, name=name)
+                app_session.add(genre)
+                existing_genres[slug] = genre
+            else:
+                genre.name = name
+        app_session.flush()  # assign genre ids
+
         artist_rows = mb.execute(_ARTIST_SQL, {"tag": tag}).mappings().all()
         if not artist_rows:
             logger.warning("No artists found for tag %r", tag)
+            app_session.commit()
             return stats
 
         # --- Bands -------------------------------------------------------
@@ -217,19 +235,7 @@ def run_seed(mb_engine: Engine, app_session: Session, *, tag: str | None = None)
                 stats.links_updated += 1
 
         # --- Genres (curated sub-genres) --------------------------------
-        # Upsert the curated vocabulary (idempotent by slug); CURATED_GENRES
-        # is the source of truth, this table a cache of it.
-        existing_genres = {g.slug: g for g in app_session.query(Genre)}
-        for slug, (name, _aliases) in CURATED_GENRES.items():
-            genre = existing_genres.get(slug)
-            if genre is None:
-                genre = Genre(slug=slug, name=name)
-                app_session.add(genre)
-                existing_genres[slug] = genre
-            else:
-                genre.name = name
-        app_session.flush()  # assign genre ids
-
+        # The curated vocabulary was upserted above; here we link bands to it.
         # Map each artist tag onto a curated slug, dropping anything not curated
         # (including the broad scope tag itself), and link it to the band.
         tag_rows = mb.execute(_ARTIST_TAGS_SQL, {"artist_ids": mb_artist_ids}).mappings().all()

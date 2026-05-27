@@ -5,12 +5,21 @@ import { Button } from "./ui/button";
 import { GenreBadges } from "./GenreBadges";
 import type { Genre } from "@/lib/types";
 
+function yearsActive(beginYear?: number | null, endYear?: number | null): string | null {
+  if (beginYear == null && endYear == null) return null;
+  if (beginYear == null) return `until ${endYear}`;
+  return `${beginYear}–${endYear ?? "present"}`;
+}
+
 export const TopSection = (props: {
   id: number;
   name: string;
   picture?: string | null;
   genres?: Genre[];
+  beginYear?: number | null;
+  endYear?: number | null;
 }) => {
+  const active = yearsActive(props.beginYear, props.endYear);
   return (
     <div className="flex flex-col items-center justify-between gap-[1rem] md:flex-row md:items-start">
       <div className="flex flex-col gap-[1rem]">
@@ -39,6 +48,9 @@ export const TopSection = (props: {
               >
                 {props.name.charAt(0).toUpperCase()}
               </div>
+            )}
+            {active && (
+              <p className="mt-2 text-sm text-muted-foreground">Active {active}</p>
             )}
           </CardContent>
           <CardFooter>

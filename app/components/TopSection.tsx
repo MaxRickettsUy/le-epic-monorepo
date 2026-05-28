@@ -49,9 +49,7 @@ export const TopSection = (props: {
                 {props.name.charAt(0).toUpperCase()}
               </div>
             )}
-            {active && (
-              <p className="mt-2 text-sm text-muted-foreground">Active {active}</p>
-            )}
+            {active && <p className="mt-2 text-sm text-muted-foreground">Active {active}</p>}
           </CardContent>
           <CardFooter>
             <div className="flex w-full flex-col gap-1">

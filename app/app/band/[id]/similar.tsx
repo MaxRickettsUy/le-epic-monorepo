@@ -16,6 +16,9 @@ function matchReasons(band: SimilarBand): string[] {
   if (band.shared_members > 0) {
     reasons.push(`${band.shared_members} shared member${band.shared_members > 1 ? "s" : ""}`);
   }
+  if (band.shared_genres > 0) {
+    reasons.push(`${band.shared_genres} shared genre${band.shared_genres > 1 ? "s" : ""}`);
+  }
   if (band.same_location) reasons.push("Same scene");
   if (band.same_label) reasons.push("Same label");
   // Country is redundant with a same-scene match; only show it on its own.

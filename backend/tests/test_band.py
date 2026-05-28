@@ -130,5 +130,35 @@ def test_similar_counts_shared_members(client, db):
 
     similar = {b["id"]: b for b in client.get(f"/band/{base_id}/similar").json()}
     assert similar[other_id]["shared_members"] == 1
+    assert similar[other_id]["shared_genres"] == 0
     # shared member(5) + same label(2) + same country(1) = 8
     assert similar[other_id]["score"] == 8
+
+
+def test_similar_counts_shared_genres(client, db):
+    from app.models import BandGenre, Genre
+
+    base_id = _create(client).json()["id"]
+    # Only the country tie in common, plus two shared genres seeded below.
+    other_id = _create(client, name="Black Flag", location="Hermosa Beach, CA", label="SST").json()[
+        "id"
+    ]
+
+    nyhc = Genre(slug="nyhc", name="NYHC")
+    yc = Genre(slug="youth-crew", name="Youth Crew")
+    db.add_all([nyhc, yc])
+    db.flush()
+    db.add_all(
+        [
+            BandGenre(band_id=base_id, genre_id=nyhc.id),
+            BandGenre(band_id=base_id, genre_id=yc.id),
+            BandGenre(band_id=other_id, genre_id=nyhc.id),
+            BandGenre(band_id=other_id, genre_id=yc.id),
+        ]
+    )
+    db.commit()
+
+    similar = {b["id"]: b for b in client.get(f"/band/{base_id}/similar").json()}
+    assert similar[other_id]["shared_genres"] == 2
+    # 2 shared genres(3 each) + same country(1) = 7
+    assert similar[other_id]["score"] == 7

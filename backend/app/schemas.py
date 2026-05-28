@@ -100,6 +100,13 @@ class Member(ORMModel):
     role: str | None = None
 
 
+class GenreOut(ORMModel):
+    # Validates off a BandGenre association object (`slug`/`name` are properties
+    # there) or a Genre row directly.
+    slug: str
+    name: str
+
+
 class BandBase(ORMModel):
     id: int
     name: str
@@ -112,6 +119,7 @@ class BandBase(ORMModel):
     mbid: str | None = None
     begin_year: int | None = None
     end_year: int | None = None
+    genres: list[GenreOut] = []
 
 
 class BandListItem(BandBase):
@@ -142,6 +150,7 @@ class SimilarBand(ORMModel):
     country: str
     score: int
     shared_members: int
+    shared_genres: int
     same_location: bool
     same_label: bool
     same_country: bool
@@ -167,6 +176,7 @@ class BandSearchItem(ORMModel):
     name: str
     location: str
     country: str
+    genres: list[GenreOut] = []
 
 
 class AlbumSearchItem(ORMModel):

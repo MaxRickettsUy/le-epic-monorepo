@@ -1,6 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { Card } from "./ui/card";
+import { GenreBadges } from "./GenreBadges";
 import type { BandListItem } from "@/lib/types";
 
 /** Compact band tile for the landing grid: artwork (or initial fallback) + name. */
@@ -34,6 +35,7 @@ export const BandCard = ({ band }: { band: BandListItem }) => {
             {band.name}
           </p>
           <p className="truncate text-sm text-muted-foreground">{band.location || band.country}</p>
+          <GenreBadges genres={band.genres} limit={2} className="mt-2 flex flex-wrap gap-1" />
         </div>
       </Card>
     </Link>

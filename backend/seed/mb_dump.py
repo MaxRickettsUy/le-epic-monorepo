@@ -26,7 +26,8 @@ from sqlalchemy.engine import Engine
 from sqlalchemy.orm import Session
 
 from app.database import SessionLocal
-from app.models import Album, Band, BandMember, Member
+from app.genres import CURATED_GENRES, slug_for_tag
+from app.models import Album, Band, BandGenre, BandMember, Genre, Member
 from app.settings import settings
 
 logger = logging.getLogger("seed.mb_dump")
@@ -74,6 +75,16 @@ _MEMBER_SQL = text(
     """
 ).bindparams(bindparam("band_ids", expanding=True))
 
+# All tags on the in-scope artists; mapped to curated sub-genres in run_seed.
+_ARTIST_TAGS_SQL = text(
+    """
+    SELECT atag.artist AS artist_id, t.name AS tag_name, atag.count AS votes
+    FROM artist_tag atag
+    JOIN tag t ON t.id = atag.tag
+    WHERE atag.artist IN :artist_ids
+    """
+).bindparams(bindparam("artist_ids", expanding=True))
+
 
 @dataclass
 class SeedStats:
@@ -84,6 +95,8 @@ class SeedStats:
     members_inserted: int = 0
     links_inserted: int = 0
     links_updated: int = 0
+    genres_linked: int = 0
+    genre_links_updated: int = 0
     skipped: list[str] = field(default_factory=list)
 
     def as_dict(self) -> dict:
@@ -95,6 +108,8 @@ class SeedStats:
             "members_inserted": self.members_inserted,
             "links_inserted": self.links_inserted,
             "links_updated": self.links_updated,
+            "genres_linked": self.genres_linked,
+            "genre_links_updated": self.genre_links_updated,
             "skipped": len(self.skipped),
         }
 
@@ -112,9 +127,25 @@ def run_seed(mb_engine: Engine, app_session: Session, *, tag: str | None = None)
     stats = SeedStats()
 
     with mb_engine.connect() as mb:
+        # --- Genres (curated vocabulary) --------------------------------
+        # Upsert the curated vocabulary (idempotent by slug); CURATED_GENRES
+        # is the source of truth, this table a cache of it. Run before the
+        # no-artists early return so the vocabulary is seeded regardless.
+        existing_genres = {g.slug: g for g in app_session.query(Genre)}
+        for slug, (name, _aliases) in CURATED_GENRES.items():
+            genre = existing_genres.get(slug)
+            if genre is None:
+                genre = Genre(slug=slug, name=name)
+                app_session.add(genre)
+                existing_genres[slug] = genre
+            else:
+                genre.name = name
+        app_session.flush()  # assign genre ids
+
         artist_rows = mb.execute(_ARTIST_SQL, {"tag": tag}).mappings().all()
         if not artist_rows:
             logger.warning("No artists found for tag %r", tag)
+            app_session.commit()
             return stats
 
         # --- Bands -------------------------------------------------------
@@ -202,6 +233,35 @@ def run_seed(mb_engine: Engine, app_session: Session, *, tag: str | None = None)
             elif link.role != row["role"]:
                 link.role = row["role"]
                 stats.links_updated += 1
+
+        # --- Genres (curated sub-genres) --------------------------------
+        # The curated vocabulary was upserted above; here we link bands to it.
+        # Map each artist tag onto a curated slug, dropping anything not curated
+        # (including the broad scope tag itself), and link it to the band.
+        tag_rows = mb.execute(_ARTIST_TAGS_SQL, {"artist_ids": mb_artist_ids}).mappings().all()
+        existing_genre_links = {
+            (bg.band_id, bg.genre_id): bg for bg in app_session.query(BandGenre)
+        }
+        for row in tag_rows:
+            band = band_by_mb_id.get(row["artist_id"])
+            if band is None:
+                continue
+            slug = slug_for_tag(row["tag_name"])
+            if slug is None:
+                continue
+            genre = existing_genres[slug]
+            votes = row["votes"] or 0
+            link = existing_genre_links.get((band.id, genre.id))
+            if link is None:
+                link = BandGenre(band=band, genre=genre, vote_count=votes)
+                app_session.add(link)
+                existing_genre_links[(band.id, genre.id)] = link
+                stats.genres_linked += 1
+            elif votes > link.vote_count:
+                # A second alias of the same genre, or a refreshed vote count;
+                # keep the strongest signal.
+                link.vote_count = votes
+                stats.genre_links_updated += 1
 
     app_session.commit()
     return stats

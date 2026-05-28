@@ -12,6 +12,12 @@ export const memberSchema = z.object({
   role: z.string().nullish(),
 });
 
+/** A curated hardcore sub-genre attached to a band. */
+export const genreSchema = z.object({
+  slug: z.string(),
+  name: z.string(),
+});
+
 export const trackSchema = z.object({
   id: z.number(),
   name: z.string(),
@@ -66,6 +72,8 @@ const bandBaseSchema = z.object({
   mbid: z.string().nullish(),
   begin_year: z.number().nullish(),
   end_year: z.number().nullish(),
+  /** Curated sub-genres, strongest-voted first. */
+  genres: z.array(genreSchema),
 });
 
 /** Band as returned in the paginated list (`GET /band/`). */
@@ -88,6 +96,7 @@ export const similarBandSchema = z.object({
   country: z.string(),
   score: z.number(),
   shared_members: z.number(),
+  shared_genres: z.number(),
   same_location: z.boolean(),
   same_label: z.boolean(),
   same_country: z.boolean(),
@@ -106,6 +115,8 @@ export const bandSearchItemSchema = z.object({
   name: z.string(),
   location: z.string(),
   country: z.string(),
+  /** Curated sub-genres, strongest-voted first. */
+  genres: z.array(genreSchema),
 });
 
 /** An album matched by a catalogue search, carrying its band for linking. */
@@ -163,6 +174,7 @@ export type ReleaseFormValues = z.infer<typeof releaseFormSchema>;
 
 export type BandStatus = z.infer<typeof bandStatusSchema>;
 export type Member = z.infer<typeof memberSchema>;
+export type Genre = z.infer<typeof genreSchema>;
 export type Track = z.infer<typeof trackSchema>;
 export type Release = z.infer<typeof releaseSchema>;
 export type BandSummary = z.infer<typeof bandSummarySchema>;

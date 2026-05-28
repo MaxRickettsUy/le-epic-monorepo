@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { search } from "@/lib/api";
 import { Header } from "@/components/ui/header";
+import { GenreBadges } from "@/components/GenreBadges";
 
 // Results depend on the live catalogue and the query string; never prerender.
 export const dynamic = "force-dynamic";
@@ -59,7 +60,10 @@ export default async function SearchPage({ searchParams }: PageProps) {
                     href={`/band/${band.id}`}
                     className="flex items-baseline justify-between gap-4 px-4 py-3 hover:bg-muted"
                   >
-                    <span className="font-medium">{band.name}</span>
+                    <span className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+                      <span className="font-medium">{band.name}</span>
+                      <GenreBadges genres={band.genres} />
+                    </span>
                     <span className="truncate text-sm text-muted-foreground">
                       {band.location || band.country}
                     </span>

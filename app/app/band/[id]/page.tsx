@@ -8,6 +8,9 @@ import { Header } from "@/components/ui/header";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TopSection } from "@/components/TopSection";
 
+// Always render fresh: override the 60s Data Cache on this route's fetches.
+export const fetchCache = "force-no-store";
+
 interface PageProps {
   params: Promise<{ id: string }>;
 }
@@ -41,6 +44,8 @@ export default async function BandPage({ params }: PageProps) {
           name={band.name}
           picture={band.band_picture}
           genres={band.genres}
+          beginYear={band.begin_year}
+          endYear={band.end_year}
         />
         <Tabs defaultValue="discography" className="w-full p-4">
           <TabsList>

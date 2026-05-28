@@ -18,7 +18,7 @@ from app.models import Album, Band, BandGenre, BandMember, Genre, Member, Track
 
 logger = logging.getLogger("seed.dev")
 
-# name, status, location, country, label,
+# name, status, location, country, label, begin_year, [end_year],
 #   [ (album, year, type, [tracks]) ], [ (member, role) ],
 #   [ (genre slug, vote_count) ] — slug must exist in app.genres.CURATED_GENRES.
 #   These are REAL MusicBrainz data: each band's MB tags/genres (fetched via the
@@ -29,6 +29,8 @@ BANDS = [
     {
         "name": "Minor Threat",
         "status": "split-up",
+        "begin_year": 1980,
+        "end_year": 1983,
         "location": "Washington, D.C.",
         "country": "United States",
         "label": "Dischord Records",
@@ -47,6 +49,8 @@ BANDS = [
     {
         "name": "Black Flag",
         "status": "split-up",
+        "begin_year": 1976,
+        "end_year": 1986,
         "location": "Hermosa Beach, California",
         "country": "United States",
         "label": "SST Records",
@@ -65,6 +69,7 @@ BANDS = [
     {
         "name": "Bad Brains",
         "status": "active",
+        "begin_year": 1976,
         "location": "Washington, D.C.",
         "country": "United States",
         "label": "ROIR",
@@ -83,6 +88,7 @@ BANDS = [
     {
         "name": "Gorilla Biscuits",
         "status": "on-hold",
+        "begin_year": 1987,
         "location": "New York City",
         "country": "United States",
         "label": "Revelation Records",
@@ -100,6 +106,7 @@ BANDS = [
     {
         "name": "Discharge",
         "status": "active",
+        "begin_year": 1977,
         "location": "Stoke-on-Trent",
         "country": "United Kingdom",
         "label": "Clay Records",
@@ -121,6 +128,7 @@ BANDS = [
     {
         "name": "Trapped Under Ice",
         "status": "on-hold",
+        "begin_year": 2005,
         "location": "Baltimore, Maryland",
         "country": "United States",
         "label": "Reaper Records",
@@ -139,6 +147,7 @@ BANDS = [
     {
         "name": "Turnstile",
         "status": "active",
+        "begin_year": 2010,
         "location": "Baltimore, Maryland",
         "country": "United States",
         "label": "Reaper Records",
@@ -162,6 +171,7 @@ BANDS = [
     {
         "name": "Angel Du$t",
         "status": "active",
+        "begin_year": 2013,
         "location": "Baltimore, Maryland",
         "country": "United States",
         "label": "React! Records",
@@ -178,6 +188,8 @@ BANDS = [
     {
         "name": "Pulling Teeth",
         "status": "split-up",
+        "begin_year": 2005,
+        "end_year": 2012,
         "location": "Baltimore, Maryland",
         "country": "United States",
         "label": "Deathwish Inc.",
@@ -205,6 +217,7 @@ BANDS = [
     {
         "name": "Cold World",
         "status": "active",
+        "begin_year": 2003,
         "location": "Wilkes-Barre, Pennsylvania",
         "country": "United States",
         "label": "Deathwish Inc.",
@@ -227,6 +240,7 @@ BANDS = [
     {
         "name": "Title Fight",
         "status": "on-hold",
+        "begin_year": 2003,
         "location": "Kingston, Pennsylvania",
         "country": "United States",
         "label": "SideOneDummy Records",
@@ -250,6 +264,7 @@ BANDS = [
     {
         "name": "Strength for a Reason",
         "status": "active",
+        "begin_year": 1996,
         "location": "Wilkes-Barre, Pennsylvania",
         "country": "United States",
         "label": "Stillborn Records",
@@ -265,6 +280,8 @@ BANDS = [
     {
         "name": "Dead End Path",
         "status": "split-up",
+        "begin_year": 2008,
+        "end_year": 2012,
         "location": "Wilkes-Barre, Pennsylvania",
         "country": "United States",
         "label": "Triple B Records",
@@ -279,6 +296,8 @@ BANDS = [
     {
         "name": "War Hungry",
         "status": "split-up",
+        "begin_year": 2006,
+        "end_year": 2013,
         "location": "Wilkes-Barre, Pennsylvania",
         "country": "United States",
         "label": "Six Feet Under Records",
@@ -298,6 +317,8 @@ BANDS = [
     {
         "name": "Bad Seed",
         "status": "split-up",
+        "begin_year": 2008,
+        "end_year": 2010,
         "location": "Wilkes-Barre, Pennsylvania",
         "country": "United States",
         "label": "6131 Records",
@@ -344,6 +365,8 @@ def run_seed(session) -> dict:
             location=spec["location"],
             country=spec["country"],
             label=spec["label"],
+            begin_year=spec.get("begin_year"),
+            end_year=spec.get("end_year"),
         )
         session.add(band)
         stats["bands"] += 1
@@ -353,9 +376,7 @@ def run_seed(session) -> dict:
             session.add(album)
             stats["albums"] += 1
             for i, track_name in enumerate(track_names, start=1):
-                session.add(
-                    Track(name=track_name, track_number=i, position=i, release=album)
-                )
+                session.add(Track(name=track_name, track_number=i, position=i, release=album))
                 stats["tracks"] += 1
 
         for member_name, role in spec["members"]:
@@ -374,6 +395,18 @@ def run_seed(session) -> dict:
     # by genuine community votes.
     session.flush()  # ensure new bands have ids
     bands_by_name = {b.name: b for b in session.query(Band).all()}
+
+    # Backfill active years onto bands that were seeded before this data existed.
+    # Independent of the band-skip above so re-running on an older DB fills them in.
+    for spec in BANDS:
+        band = bands_by_name.get(spec["name"])
+        if band is None:
+            continue
+        if band.begin_year is None and spec.get("begin_year") is not None:
+            band.begin_year = spec["begin_year"]
+        if band.end_year is None and spec.get("end_year") is not None:
+            band.end_year = spec["end_year"]
+
     existing_links = {(bg.band_id, bg.genre_id) for bg in session.query(BandGenre).all()}
     for spec in BANDS:
         band = bands_by_name.get(spec["name"])

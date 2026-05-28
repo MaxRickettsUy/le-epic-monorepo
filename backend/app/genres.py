@@ -21,6 +21,20 @@ CURATED_GENRES: dict[str, tuple[str, set[str]]] = {
     "d-beat": ("D-beat", {"d-beat", "dbeat", "d beat"}),
     "crust": ("Crust Punk", {"crust", "crust punk", "crustcore"}),
     "straight-edge": ("Straight Edge", {"straight edge", "sxe", "straightedge"}),
+    "grindcore": ("Grindcore", {"grindcore", "grind"}),
+    "thrashcore": ("Thrashcore", {"thrashcore", "fastcore"}),
+    "crossover-thrash": ("Crossover Thrash", {"crossover thrash", "crossover"}),
+    "screamo": ("Screamo", {"screamo", "emoviolence", "emo violence", "emo-violence"}),
+    "emo": ("Emo", {"emo", "emocore"}),
+    "skate-punk": ("Skate Punk", {"skate punk", "skatepunk"}),
+    "oi": ("Oi!", {"oi", "oi!", "street punk", "streetpunk"}),
+    "mathcore": ("Mathcore", {"mathcore", "math core"}),
+    "deathcore": ("Deathcore", {"deathcore"}),
+    "metallic-hardcore": ("Metallic Hardcore", {"metallic hardcore"}),
+    "anarcho-punk": ("Anarcho-Punk", {"anarcho-punk", "anarcho punk", "anarchopunk"}),
+    "ska-punk": ("Ska Punk", {"ska punk", "ska-core", "skacore"}),
+    "sludge": ("Sludge", {"sludge", "sludge metal", "sludgecore"}),
+    "chaotic-hardcore": ("Chaotic Hardcore", {"chaotic hardcore"}),
 }
 
 # Reverse lookup: lowercased MB tag alias (and the slug itself) -> curated slug.

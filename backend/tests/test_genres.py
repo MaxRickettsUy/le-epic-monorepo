@@ -12,7 +12,7 @@ def test_alias_variants_collapse_to_one_slug():
 
 
 def test_non_curated_tag_is_ignored():
-    assert slug_for_tag("emo") is None
+    assert slug_for_tag("shoegaze") is None
     assert slug_for_tag("") is None
 
 

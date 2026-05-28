@@ -13,11 +13,18 @@ from __future__ import annotations
 import logging
 
 from app.database import SessionLocal
-from app.models import Album, Band, BandMember, Member, Track
+from app.genres import CURATED_GENRES
+from app.models import Album, Band, BandGenre, BandMember, Genre, Member, Track
 
 logger = logging.getLogger("seed.dev")
 
-# name, status, location, country, label, [ (album, year, type, [tracks]) ], [ (member, role) ]
+# name, status, location, country, label,
+#   [ (album, year, type, [tracks]) ], [ (member, role) ],
+#   [ (genre slug, vote_count) ] — slug must exist in app.genres.CURATED_GENRES.
+#   These are REAL MusicBrainz data: each band's MB tags/genres (fetched via the
+#   MB web API) funneled through app.genres.ALIAS_TO_SLUG, with vote_count = the
+#   MB tag count. Many MB hardcore entries are thinly tagged, so several bands map
+#   to no curated slug and intentionally carry no genres (no badge).
 BANDS = [
     {
         "name": "Minor Threat",
@@ -35,6 +42,7 @@ BANDS = [
             ("Brian Baker", "bass"),
             ("Jeff Nelson", "drums"),
         ],
+        "genres": [("straight-edge", 3)],
     },
     {
         "name": "Black Flag",
@@ -51,6 +59,8 @@ BANDS = [
             ("Greg Ginn", "guitar"),
             ("Chuck Dukowski", "bass"),
         ],
+        # MB tags: only "hardcore punk"/"punk" — both scope/umbrella, so no badge.
+        "genres": [],
     },
     {
         "name": "Bad Brains",
@@ -68,6 +78,7 @@ BANDS = [
             ("Darryl Jenifer", "bass"),
             ("Earl Hudson", "drums"),
         ],
+        "genres": [],
     },
     {
         "name": "Gorilla Biscuits",
@@ -83,6 +94,8 @@ BANDS = [
             ("Civ", "vocals"),
             ("Walter Schreifels", "guitar"),
         ],
+        # MB tags: "punk", "new york" — no curated match ("new york" != nyhc alias).
+        "genres": [],
     },
     {
         "name": "Discharge",
@@ -102,6 +115,7 @@ BANDS = [
             ("Cal", "vocals"),
             ("Bones", "guitar"),
         ],
+        "genres": [("d-beat", 3)],
     },
     # --- Baltimore, MD hardcore (early 2010s) --------------------------------
     {
@@ -119,6 +133,8 @@ BANDS = [
             ("Sam Trapkin", "guitar"),
             ("Brendan Yates", "drums"),
         ],
+        # MB tags: only "hardcore punk".
+        "genres": [],
     },
     {
         "name": "Turnstile",
@@ -141,6 +157,7 @@ BANDS = [
             ("Franz Lyons", "bass"),
             ("Daniel Fang", "drums"),
         ],
+        "genres": [("post-hardcore", 1)],
     },
     {
         "name": "Angel Du$t",
@@ -156,6 +173,7 @@ BANDS = [
             ("Brendan Yates", "guitar"),
             ("Daniel Fang", "drums"),
         ],
+        "genres": [("melodic-hardcore", 1)],
     },
     {
         "name": "Pulling Teeth",
@@ -175,6 +193,12 @@ BANDS = [
         "members": [
             ("Mike Riley", "vocals"),
             ("Domenic Romeo", "guitar"),
+        ],
+        "genres": [
+            ("crossover-thrash", 1),
+            ("sludge", 1),
+            ("thrashcore", 1),
+            ("metallic-hardcore", 1),
         ],
     },
     # --- Wilkes-Barre / NEPA hardcore (early 2010s) --------------------------
@@ -197,6 +221,8 @@ BANDS = [
             ("Daniel Dart", "vocals"),
             ("Nick Woj", "drums"),
         ],
+        # No tags on the MB entry.
+        "genres": [],
     },
     {
         "name": "Title Fight",
@@ -219,6 +245,7 @@ BANDS = [
             ("Shane Moran", "guitar"),
             ("Ben Russin", "drums"),
         ],
+        "genres": [("post-hardcore", 4), ("emo", 3)],
     },
     {
         "name": "Strength for a Reason",
@@ -232,6 +259,8 @@ BANDS = [
         "members": [
             ("Karl Kivler", "vocals"),
         ],
+        # MB tags: only "hardcore punk".
+        "genres": [],
     },
     {
         "name": "Dead End Path",
@@ -244,6 +273,8 @@ BANDS = [
             ("Blind Faith", 2011, "lp", ["Blind Faith", "Hour of the Wolf", "Disconnect"]),
         ],
         "members": [],
+        # No tags on the MB entry (disambiguation calls it "metallic hardcore").
+        "genres": [],
     },
     {
         "name": "War Hungry",
@@ -261,6 +292,8 @@ BANDS = [
             ("Sam", "bass"),
             ("Mook", "drums"),
         ],
+        # No tags on the MB entry.
+        "genres": [],
     },
     {
         "name": "Bad Seed",
@@ -276,6 +309,8 @@ BANDS = [
             ("Ned Russin", "bass"),
             ("Jamie Rhoden", "guitar"),
         ],
+        # No reliable MB entry — the name resolves to an unrelated hard rock band.
+        "genres": [],
     },
 ]
 
@@ -283,7 +318,20 @@ BANDS = [
 def run_seed(session) -> dict:
     existing = {name for (name,) in session.query(Band.name).all()}
     members_by_name: dict[str, Member] = {m.name: m for m in session.query(Member).all()}
-    stats = {"bands": 0, "albums": 0, "tracks": 0, "members": 0, "skipped": 0}
+    stats = {"bands": 0, "albums": 0, "tracks": 0, "members": 0, "skipped": 0, "genre_links": 0}
+
+    # Upsert the curated sub-genre vocabulary (source of truth: app.genres).
+    # Done unconditionally so genres exist even when every band is skipped.
+    genres_by_slug: dict[str, Genre] = {g.slug: g for g in session.query(Genre).all()}
+    for slug, (name, _aliases) in CURATED_GENRES.items():
+        genre = genres_by_slug.get(slug)
+        if genre is None:
+            genre = Genre(slug=slug, name=name)
+            session.add(genre)
+            genres_by_slug[slug] = genre
+        else:
+            genre.name = name
+    session.flush()  # assign genre ids
 
     for spec in BANDS:
         if spec["name"] in existing:
@@ -319,6 +367,25 @@ def run_seed(session) -> dict:
                 members_by_name[member_name] = member
                 stats["members"] += 1
             session.add(BandMember(band=band, member=member, role=role))
+
+    # Link bands to genres. Independent of the band-skip above so a DB that
+    # already has the bands (but no genres) gets backfilled on re-run. Idempotent
+    # by (band_id, genre_id). vote_count is the real MB tag count, so badges rank
+    # by genuine community votes.
+    session.flush()  # ensure new bands have ids
+    bands_by_name = {b.name: b for b in session.query(Band).all()}
+    existing_links = {(bg.band_id, bg.genre_id) for bg in session.query(BandGenre).all()}
+    for spec in BANDS:
+        band = bands_by_name.get(spec["name"])
+        if band is None:
+            continue
+        for slug, votes in spec.get("genres", []):
+            genre = genres_by_slug[slug]
+            if (band.id, genre.id) in existing_links:
+                continue
+            session.add(BandGenre(band=band, genre=genre, vote_count=votes))
+            existing_links.add((band.id, genre.id))
+            stats["genre_links"] += 1
 
     session.commit()
     return stats

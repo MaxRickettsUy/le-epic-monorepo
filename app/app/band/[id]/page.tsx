@@ -8,6 +8,9 @@ import { Header } from "@/components/ui/header";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TopSection } from "@/components/TopSection";
 
+// Always render fresh: override the 60s Data Cache on this route's fetches.
+export const fetchCache = "force-no-store";
+
 interface PageProps {
   params: Promise<{ id: string }>;
 }

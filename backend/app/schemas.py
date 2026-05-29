@@ -132,6 +132,13 @@ class BandList(BaseModel):
     prev: int | None = None
 
 
+class CountryCount(BaseModel):
+    """A distinct band country and how many bands carry it (browse facet)."""
+
+    country: str
+    count: int
+
+
 class BandDetail(BandBase):
     members: list[Member] = []
     releases: list[ReleaseInBand] = []

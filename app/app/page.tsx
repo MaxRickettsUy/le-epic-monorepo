@@ -7,7 +7,7 @@ export const dynamic = "force-dynamic";
 
 export default async function Home() {
   // Backend caps the page at `bands_per_page` (10); `recent` orders by created_at desc.
-  const { bands } = await listBands(1, "recent");
+  const { bands } = await listBands({ page: 1, sort: "recent" });
 
   return (
     <main className="flex flex-col pb-[1rem]">

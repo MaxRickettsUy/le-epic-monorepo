@@ -109,6 +109,12 @@ export const bandListSchema = z.object({
   prev: z.number().nullable(),
 });
 
+/** A distinct band country with its band count (`GET /band/countries`). */
+export const countryCountSchema = z.object({
+  country: z.string(),
+  count: z.number(),
+});
+
 /** A band matched by a catalogue search (`GET /search/`). */
 export const bandSearchItemSchema = z.object({
   id: z.number(),
@@ -183,6 +189,7 @@ export type ReleaseDetail = z.infer<typeof releaseDetailSchema>;
 export type BandListItem = z.infer<typeof bandListItemSchema>;
 export type Band = z.infer<typeof bandSchema>;
 export type BandList = z.infer<typeof bandListSchema>;
+export type CountryCount = z.infer<typeof countryCountSchema>;
 export type MutationResult = z.infer<typeof mutationResultSchema>;
 export type BandSearchItem = z.infer<typeof bandSearchItemSchema>;
 export type AlbumSearchItem = z.infer<typeof albumSearchItemSchema>;

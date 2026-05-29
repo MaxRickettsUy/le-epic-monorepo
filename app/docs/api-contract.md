@@ -33,7 +33,8 @@ the frontend depends on. The authoritative definitions live in:
 
 | Method & path                     | Request body | Response (2xx)                      | Notes                                                                                                                                                                                                             |
 | --------------------------------- | ------------ | ----------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `GET /band/`                      | —            | `BandList`                          | `?page=` (1-based), `bands_per_page` from backend settings. `?sort=` is `name` (default) or `recent` (created_at desc).                                                                                           |
+| `GET /band/`                      | —            | `BandList`                          | `?page=` (1-based), `bands_per_page` from backend settings. `?sort=` is `name` (default) or `recent` (created_at desc). Optional facets, combinable: `?genre=<slug>`, `?country=<exact>`, `?letter=<A–Z or #>` (`#` = name not starting A–Z; other values → `422`). The pagination total reflects the active facets. |
+| `GET /band/countries`             | —            | `CountryCount[]`                    | Distinct band countries with counts, desc by count then name. Free-text column (no normalization). Used to populate the country browse facet.                                                                     |
 | `GET /band/{id}`                  | —            | `BandDetail`                        | `404` → `null`. Eager-loads `releases` + `members` + `genres`.                                                                                                                                                    |
 | `GET /band/{id}/similar`          | —            | `SimilarBand[]`                     | Weighted score over shared members, `location`, shared genres, `label`, `country` (see `band/routes.py` `SIMILARITY_WEIGHTS`). Self excluded, score-desc then name, capped at `bands_per_page`. `404` if missing. |
 | `POST /band/new`                  | `BandCreate` | `{ message: string, id: number }`   |                                                                                                                                                                                                                   |
@@ -60,6 +61,12 @@ the frontend depends on. The authoritative definitions live in:
 | `POST /track/{id}/update`   | `TrackCreate` | `"track updated"` |                                                 |
 | `DELETE /track/{id}/delete` | —             | `"track deleted"` |                                                 |
 
+### Genres
+
+| Method & path | Request body | Response (2xx) | Notes                                                                                                                                       |
+| ------------- | ------------ | -------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET /genre/` | —            | `Genre[]`      | The full curated sub-genre vocabulary, alphabetical by display name. Served from `backend/app/genres.py` (works even before the seed runs). |
+
 ### Search
 
 | Method & path     | Request body | Response (2xx)  | Notes                                                                                                                                                                                                                                                                                                                                                                |
@@ -85,6 +92,12 @@ use `.nullish()`, accepting `null` and `undefined`.
   next: number | null;   // next page number, or null at the end
   prev: number | null;   // previous page number, or null on page 1
 }
+```
+
+### `CountryCount` — `GET /band/countries`
+
+```json
+{ country: string; count: number; }
 ```
 
 ### `BandListItem` / `BandBase`

@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.band.routes import router as band_router
+from app.genre.routes import router as genre_router
 from app.release.routes import router as release_router
 from app.search.routes import router as search_router
 from app.settings import settings
@@ -24,6 +25,7 @@ app.add_middleware(
 )
 
 app.include_router(band_router, prefix="/band", tags=["band"])
+app.include_router(genre_router, prefix="/genre", tags=["genre"])
 app.include_router(release_router, prefix="/release", tags=["release"])
 app.include_router(track_router, prefix="/track", tags=["track"])
 app.include_router(search_router, prefix="/search", tags=["search"])

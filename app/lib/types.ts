@@ -14,6 +14,7 @@ export type {
   BandListItem,
   Band,
   BandList,
+  CountryCount,
   MutationResult,
   BandSearchItem,
   AlbumSearchItem,

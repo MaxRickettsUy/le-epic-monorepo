@@ -1,6 +1,21 @@
 import { z } from "zod";
-import type { Band, BandList, BandStatus, MutationResult, SimilarBand } from "@/lib/types";
-import { bandListSchema, bandSchema, mutationResultSchema, similarBandSchema } from "@/lib/schemas";
+import type {
+  Band,
+  BandList,
+  BandStatus,
+  CountryCount,
+  Genre,
+  MutationResult,
+  SimilarBand,
+} from "@/lib/types";
+import {
+  bandListSchema,
+  bandSchema,
+  countryCountSchema,
+  genreSchema,
+  mutationResultSchema,
+  similarBandSchema,
+} from "@/lib/schemas";
 import { apiFetch, apiFetchOrNull } from "./client";
 
 export interface BandCreateInput {
@@ -15,11 +30,39 @@ export interface BandCreateInput {
 
 export type { MutationResult };
 
-/** Paginated list of bands (`GET /band/`). `sort` is `name` (default) or `recent`. */
-export function listBands(page = 1, sort: "name" | "recent" = "name"): Promise<BandList> {
-  return apiFetch(`/band/?page=${page}&sort=${sort}`, bandListSchema, {
+/** Browse facets for the band index. All optional and combinable. */
+export interface BandListFilters {
+  page?: number;
+  sort?: "name" | "recent";
+  /** Curated genre slug. */
+  genre?: string;
+  /** Exact country string (as returned by `listCountries`). */
+  country?: string;
+  /** Single A–Z initial, or `#` for names not starting with a letter. */
+  letter?: string;
+}
+
+/** Paginated, optionally-faceted list of bands (`GET /band/`). */
+export function listBands(filters: BandListFilters = {}): Promise<BandList> {
+  const params = new URLSearchParams();
+  params.set("page", String(filters.page ?? 1));
+  params.set("sort", filters.sort ?? "name");
+  if (filters.genre) params.set("genre", filters.genre);
+  if (filters.country) params.set("country", filters.country);
+  if (filters.letter) params.set("letter", filters.letter);
+  return apiFetch(`/band/?${params.toString()}`, bandListSchema, {
     next: { revalidate: 60 },
   });
+}
+
+/** The curated sub-genre vocabulary (`GET /genre/`), alphabetical by name. */
+export function listGenres(): Promise<Genre[]> {
+  return apiFetch(`/genre/`, z.array(genreSchema), { next: { revalidate: 3600 } });
+}
+
+/** Distinct band countries with counts (`GET /band/countries`). */
+export function listCountries(): Promise<CountryCount[]> {
+  return apiFetch(`/band/countries`, z.array(countryCountSchema), { next: { revalidate: 60 } });
 }
 
 /** Band detail (`GET /band/{id}`); `null` when the band does not exist. */

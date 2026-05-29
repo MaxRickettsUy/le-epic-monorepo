@@ -1,3 +1,4 @@
+import string
 from typing import Literal
 
 import sqlalchemy as sa
@@ -6,7 +7,7 @@ from sqlalchemy.orm import Session, selectinload
 
 from app import schemas
 from app.database import get_db
-from app.models import Band, BandGenre, BandMember
+from app.models import Band, BandGenre, BandMember, Genre
 from app.services import musicbrainz
 from app.settings import settings
 
@@ -31,10 +32,39 @@ SIMILARITY_WEIGHTS = {
 def get_all(
     page: int = Query(1, ge=1),
     sort: Literal["name", "recent"] = Query("name"),
+    genre: str | None = Query(None, description="Restrict to bands carrying this genre slug"),
+    country: str | None = Query(None, description="Restrict to bands with this exact country"),
+    letter: str | None = Query(
+        None,
+        min_length=1,
+        max_length=1,
+        description="Restrict to bands whose name starts with this letter, or '#' for non-A–Z",
+    ),
     db: Session = Depends(get_db),
 ):
     per_page = settings.bands_per_page
-    total = db.scalar(sa.select(sa.func.count()).select_from(Band))
+
+    # Build the facet filters once and apply them to both the count and the page
+    # query, so pagination's `next` reflects the filtered total — not the catalogue.
+    filters = []
+    if genre is not None:
+        filters.append(Band.genres.any(BandGenre.genre.has(Genre.slug == genre)))
+    if country is not None:
+        filters.append(Band.country == country)
+    if letter is not None:
+        if letter == "#":
+            # Names that don't start with a Latin letter (numbers, symbols, …).
+            filters.append(
+                sa.not_(sa.or_(*[Band.name.ilike(f"{c}%") for c in string.ascii_uppercase]))
+            )
+        elif letter.isalpha():
+            filters.append(Band.name.ilike(f"{letter}%"))
+        else:
+            raise HTTPException(
+                status_code=422, detail="letter must be a single A–Z character or '#'"
+            )
+
+    total = db.scalar(sa.select(sa.func.count()).select_from(Band).where(*filters))
     order = (
         (Band.created_at.desc(), Band.id.desc())
         if sort == "recent"
@@ -43,6 +73,7 @@ def get_all(
     bands = db.scalars(
         sa.select(Band)
         .options(selectinload(Band.genres).selectinload(BandGenre.genre))
+        .where(*filters)
         .order_by(*order)
         .offset((page - 1) * per_page)
         .limit(per_page)
@@ -54,6 +85,18 @@ def get_all(
         next=page + 1 if has_next else None,
         prev=page - 1 if page > 1 else None,
     )
+
+
+@router.get("/countries", response_model=list[schemas.CountryCount])
+def list_countries(db: Session = Depends(get_db)):
+    """Distinct band countries with counts, for the browse facet. Free-text
+    column, so values are whatever was seeded (no normalization)."""
+    rows = db.execute(
+        sa.select(Band.country, sa.func.count().label("count"))
+        .group_by(Band.country)
+        .order_by(sa.func.count().desc(), Band.country.asc())
+    ).all()
+    return [schemas.CountryCount(country=country, count=count) for country, count in rows]
 
 
 @router.post("/new")

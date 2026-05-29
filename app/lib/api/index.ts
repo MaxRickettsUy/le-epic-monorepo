@@ -1,10 +1,13 @@
 export { ApiError, ApiParseError } from "./client";
 export {
   listBands,
+  listGenres,
+  listCountries,
   getBand,
   getSimilarBands,
   createBand,
   updateBand,
+  type BandListFilters,
   type BandCreateInput,
   type MutationResult,
 } from "./bands";

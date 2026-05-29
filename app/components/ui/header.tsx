@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { Avatar, AvatarFallback } from "./avatar";
-import { Button } from "./button";
 import { Input } from "./input";
 import { ThemeToggle } from "./theme-toggle";
 
@@ -22,9 +21,6 @@ export const Header = () => {
         </Avatar>
       </Link>
       <nav aria-label="Primary" className="ml-auto flex flex-row items-center gap-[1rem]">
-        <Button asChild className="inline-flex">
-          <Link href="/create/band">Add Band</Link>
-        </Button>
         <SearchInput />
         <ThemeToggle />
       </nav>

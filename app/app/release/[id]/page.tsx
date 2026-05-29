@@ -3,9 +3,9 @@ import type { Metadata } from "next";
 import { getRelease } from "@/lib/api";
 import { TracksTable } from "./table";
 import { AlbumBreadcrumbs } from "./breadcrumbs";
+import { ReleaseHeader } from "./header";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Header } from "@/components/ui/header";
-import { TopSection } from "@/components/TopSection";
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -34,7 +34,7 @@ export default async function ReleasePage({ params }: PageProps) {
       <div className="flex flex-col gap-[1rem] p-[1rem]">
         <AlbumBreadcrumbs band={release.band.name} name={release.name} id={release.band_id} />
         <div className="flex flex-col gap-[1rem] p-4 md:flex-row">
-          <TopSection id={release.band_id} name={release.band.name} picture={release.art} />
+          <ReleaseHeader release={release} />
           <Tabs defaultValue="tracks" className="w-full p-4">
             <TabsList>
               <TabsTrigger value="tracks">Tracks</TabsTrigger>

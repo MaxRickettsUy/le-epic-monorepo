@@ -1,3 +1,4 @@
+from app.settings import settings
 from tests.test_band import BAND
 
 
@@ -83,16 +84,18 @@ def test_release_list_recent_orders_newest_first_and_includes_band(client):
 
 def test_release_list_pagination(client):
     band_id = _band(client)
-    for i in range(12):
+    per_page = settings.releases_per_page
+    total = per_page + 2
+    for i in range(total):
         client.post(f"/release/new?band={band_id}", json={**RELEASE, "name": f"R{i:02d}"})
 
     p1 = client.get("/release/?page=1").json()
-    assert len(p1["releases"]) == 10
-    assert p1["next"] == 2
+    assert len(p1["releases"]) == per_page
+    assert p1["next"] == (2 if total > per_page else None)
     assert p1["prev"] is None
 
     p2 = client.get("/release/?page=2").json()
-    assert len(p2["releases"]) == 2
+    assert len(p2["releases"]) == total - per_page
     assert p2["next"] is None
     assert p2["prev"] == 1
 

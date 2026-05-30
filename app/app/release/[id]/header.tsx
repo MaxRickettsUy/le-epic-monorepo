@@ -28,7 +28,7 @@ export function ReleaseHeader({ release }: { release: ReleaseDetail }) {
     kind && { label: "Type", value: kind },
     release.year && { label: "Year", value: String(release.year) },
     release.label && { label: "Label", value: release.label },
-    runtime && { label: "Runtime", value: formatDuration(runtime) },
+    runtime != null && { label: "Runtime", value: formatDuration(runtime) },
   ].filter(Boolean) as { label: string; value: string }[];
 
   return (

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
-import { Card } from "./ui/card";
+import { Card } from "@/components/ui/card";
 import type { ReleaseListItem } from "@/lib/types";
 
 /** Compact album tile for discovery grids: art (or initial fallback) + album + band/year. */

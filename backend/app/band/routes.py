@@ -57,7 +57,7 @@ def get_all(
             filters.append(
                 sa.not_(sa.or_(*[Band.name.ilike(f"{c}%") for c in string.ascii_uppercase]))
             )
-        elif letter.isalpha():
+        elif len(letter) == 1 and letter.upper() in string.ascii_uppercase:
             filters.append(Band.name.ilike(f"{letter}%"))
         else:
             raise HTTPException(

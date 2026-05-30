@@ -45,8 +45,14 @@ export default async function BandsPage({ searchParams }: PageProps) {
   const country = first(sp.country);
   // Guard the letter facet so bad input doesn't reach the backend (which 422s).
   const letterRaw = first(sp.letter);
-  const letter = letterRaw === "#" || /^[A-Za-z]$/.test(letterRaw ?? "") ? letterRaw : undefined;
-  const page = Math.max(1, Number(first(sp.page)) || 1);
+  const letter =
+    letterRaw === "#"
+      ? "#"
+      : letterRaw && /^[A-Za-z]$/.test(letterRaw)
+        ? letterRaw.toUpperCase()
+        : undefined;
+  const pageParsed = Number.parseInt(first(sp.page) ?? "", 10);
+  const page = Number.isFinite(pageParsed) && pageParsed > 0 ? pageParsed : 1;
 
   const active: Facets = { sort: sort === "name" ? undefined : sort, genre, country, letter };
   const hasFacets = Boolean(genre || country || letter);
@@ -74,17 +80,21 @@ export default async function BandsPage({ searchParams }: PageProps) {
         {/* Sort */}
         <div className="flex items-center gap-2 text-sm">
           <span className="text-muted-foreground">Sort</span>
-          {(["name", "recent"] as const).map((s) => (
-            <Link
-              key={s}
-              href={facetHref(active, "sort", s === "name" ? null : s)}
-              className={`rounded-md px-2 py-1 ${
-                sort === s ? "bg-primary text-primary-foreground" : "hover:bg-muted"
-              }`}
-            >
-              {s === "name" ? "A–Z" : "Recently added"}
-            </Link>
-          ))}
+          {(["name", "recent"] as const).map((s) => {
+            const isActive = sort === s;
+            return (
+              <Link
+                key={s}
+                href={facetHref(active, "sort", s === "name" ? null : s)}
+                aria-current={isActive ? "true" : undefined}
+                className={`rounded-md px-2 py-1 ${
+                  isActive ? "bg-primary text-primary-foreground" : "hover:bg-muted"
+                }`}
+              >
+                {s === "name" ? "A–Z" : "Recently added"}
+              </Link>
+            );
+          })}
         </div>
 
         {/* Alphabetical */}
@@ -95,6 +105,7 @@ export default async function BandsPage({ searchParams }: PageProps) {
               <Link
                 key={l}
                 href={facetHref(active, "letter", isActive ? null : l)}
+                aria-current={isActive ? "true" : undefined}
                 className={`rounded px-2 py-1 text-sm ${
                   isActive ? "bg-primary text-primary-foreground" : "hover:bg-muted"
                 }`}
@@ -111,7 +122,11 @@ export default async function BandsPage({ searchParams }: PageProps) {
             {genres.map((g) => {
               const isActive = genre === g.slug;
               return (
-                <Link key={g.slug} href={facetHref(active, "genre", isActive ? null : g.slug)}>
+                <Link
+                  key={g.slug}
+                  href={facetHref(active, "genre", isActive ? null : g.slug)}
+                  aria-current={isActive ? "true" : undefined}
+                >
                   <Badge variant={isActive ? "default" : "secondary"}>{g.name}</Badge>
                 </Link>
               );

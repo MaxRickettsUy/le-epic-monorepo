@@ -1,6 +1,6 @@
 # Discovery Plan — le-epic
 
-**Goal:** make the catalogue *browsable*, not just searchable. Today you can only reach
+**Goal:** make the catalogue _browsable_, not just searchable. Today you can only reach
 a band by knowing its name (search) or by it landing in the 10-item "Recently added" row.
 Modelled on Metal Archives (browse by genre / country / alphabetical) and Album of the
 Year (rich release pages, a discovery-oriented home), kept **read-only** — no user
@@ -14,6 +14,7 @@ tables; see `backend/plans/subgenres.md`) and `/search` already accepts a `?genr
 facet — we extend that work rather than introduce new data modelling.
 
 ## Locked decisions
+
 - **Faceted band index, not a multi-page browse hub.** One `/bands` page with filters
   (genre, country, A–Z) + sort + pagination, driven entirely by URL search params
   (server-first, no client fetching). One extended endpoint, one new route.
@@ -26,6 +27,7 @@ facet — we extend that work rather than introduce new data modelling.
   AOTY-like that needs scores is explicitly deferred.
 
 ## Open questions
+
 1. **Country data quality.** `band.country` / `band.location` are free-text (not
    normalized). "Browse by country" does `SELECT DISTINCT country` — values may be messy
    (`"USA"` vs `"United States"`). Acceptable for v1? If not, normalization is a separate
@@ -36,6 +38,7 @@ facet — we extend that work rather than introduce new data modelling.
    acceptable for a demo before then.
 
 ## Recommended sequencing
+
 **Phase 2 first** (release enrichment — pure frontend, fully independent, quick win) →
 **Phase 1** (the faceted index + `/genre` endpoint — the foundation the rest leans on) →
 **Phase 4** (clickable genres — cheap, just needs Phase 1's `/bands?genre=` target) →
@@ -43,13 +46,14 @@ facet — we extend that work rather than introduce new data modelling.
 
 ---
 
-## Phase 1 — Faceted band index  (point 1: browse / discovery)
+## Phase 1 — Faceted band index (point 1: browse / discovery)
 
 The foundation. A `/bands` page that lists the whole catalogue with genre / country /
 alphabetical filters, sort, and real pagination (the backend already paginates; nothing
 in the UI exposes it today).
 
 ### Backend (`cd backend`)
+
 - **Extend `GET /band/`** (`app/band/routes.py::get_all`) with optional query params,
   all combinable:
   - `genre: str | None` — restrict to a curated slug via
@@ -69,13 +73,14 @@ in the UI exposes it today).
   display name). No DB hit; always available. (`GenreOut {slug, name}` already exists in
   `schemas.py` from subgenres step 3.)
 - **New `GET /band/countries`** — `SELECT country, COUNT(*) GROUP BY country ORDER BY
-  count DESC, country` → `list[{country: str, count: int}]` (new `CountryCount` schema) to
+count DESC, country` → `list[{country: str, count: int}]` (new `CountryCount` schema) to
   populate the country filter. (Skip/defer if open question 1 rules country out for v1.)
 - **Contract + tests:** document the new params/endpoints in `app/docs/api-contract.md`;
   tests in `tests/test_band.py` for each facet, combined facets, count/pagination under
   filter, unknown slug → empty, `letter=#`; new `tests/test_genre.py` for the genre list.
 
 ### Frontend (`cd app`)
+
 - **`lib/api/bands.ts`:** widen `listBands` to take a `filters` object
   (`{ page, sort, genre?, country?, letter? }`) and build the query string; add
   `listGenres()` (→ `/genre/`, new `genreListSchema`) and `listCountries()`
@@ -98,7 +103,7 @@ in the UI exposes it today).
 
 ---
 
-## Phase 2 — Release page enrichment  (point 2)  ·  frontend-only
+## Phase 2 — Release page enrichment (point 2) · frontend-only
 
 `ReleaseDetail` already returns `release_type`/`type`, `year`, `label`, `length`, `art`,
 plus the nested `band` and sorted `tracks` — the page (`app/release/[id]/page.tsx`) shows
@@ -119,12 +124,13 @@ have.
 
 ---
 
-## Phase 3 — Landing-page discovery  (point 3)
+## Phase 3 — Landing-page discovery (point 3)
 
 Make `/` a discovery surface, not a single recent-bands row. Depends on Phase 1's
 `/genre` endpoint and Phase 4's genre links.
 
 ### Backend (`cd backend`)
+
 - **New `GET /release/`** (`app/release/routes.py`) mirroring `get_all` for bands:
   `page` + `sort` (`recent` = `created_at desc`, or `year desc`; pick one and document),
   `joinedload(Album.band)` for the band name/link. Response `ReleaseList`
@@ -133,6 +139,7 @@ Make `/` a discovery surface, not a single recent-bands row. Depends on Phase 1'
   `tests/test_release.py` (recent ordering, pagination, band eager-load).
 
 ### Frontend (`cd app`)
+
 - **`lib/api/releases.ts`:** add `listReleases({ page, sort })` + `releaseListSchema`.
 - **`app/page.tsx`** sections:
   - "Recently added bands" (existing grid).
@@ -145,10 +152,10 @@ Make `/` a discovery surface, not a single recent-bands row. Depends on Phase 1'
 
 ---
 
-## Phase 4 — Genres as navigation  (point 4)  ·  frontend-only, depends on Phase 1
+## Phase 4 — Genres as navigation (point 4) · frontend-only, depends on Phase 1
 
 Genres are display-only badges today. Make them links into the faceted index so a genre
-is a way to *navigate*, everywhere it appears.
+is a way to _navigate_, everywhere it appears.
 
 - **`components/GenreBadges.tsx`:** wrap each `Badge` in a `Link` to
   `/bands?genre=${g.slug}`. Default to linked; if any non-navigational usage turns up
@@ -162,6 +169,7 @@ is a way to *navigate*, everywhere it appears.
 ---
 
 ## Status: not started — planning only.
+
 All four phases are independently shippable; Phase 2 has no dependencies, Phases 3 and 4
 depend on Phase 1's `/genre` endpoint and `/bands` route. No migrations, no writes, no
 user data in scope. The genre facet/nav is live only after the one-time MB seed populates

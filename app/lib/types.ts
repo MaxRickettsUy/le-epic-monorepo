@@ -14,9 +14,12 @@ export type {
   BandListItem,
   Band,
   BandList,
+  CountryCount,
   MutationResult,
   BandSearchItem,
   AlbumSearchItem,
+  ReleaseListItem,
+  ReleaseList,
   SearchResults,
 } from "./schemas";
 

@@ -132,6 +132,13 @@ class BandList(BaseModel):
     prev: int | None = None
 
 
+class CountryCount(BaseModel):
+    """A distinct band country and how many bands carry it (browse facet)."""
+
+    country: str
+    count: int
+
+
 class BandDetail(BandBase):
     members: list[Member] = []
     releases: list[ReleaseInBand] = []
@@ -188,6 +195,20 @@ class AlbumSearchItem(ORMModel):
     art: str | None = None
     band_id: int
     band_name: str
+
+
+class ReleaseListItem(AlbumSearchItem):
+    """A release in the paginated catalogue listing (`GET /release/`).
+
+    Shape-identical to `AlbumSearchItem` — same fields are needed to render an
+    album tile linked to its band.
+    """
+
+
+class ReleaseList(BaseModel):
+    releases: list[ReleaseListItem]
+    next: int | None = None
+    prev: int | None = None
 
 
 class SearchResults(BaseModel):

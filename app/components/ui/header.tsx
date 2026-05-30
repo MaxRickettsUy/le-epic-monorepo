@@ -21,6 +21,9 @@ export const Header = () => {
         </Avatar>
       </Link>
       <nav aria-label="Primary" className="ml-auto flex flex-row items-center gap-[1rem]">
+        <Link href="/bands" className="text-sm font-medium hover:underline">
+          Browse
+        </Link>
         <SearchInput />
         <ThemeToggle />
       </nav>

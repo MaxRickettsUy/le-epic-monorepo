@@ -31,25 +31,27 @@ the frontend depends on. The authoritative definitions live in:
 
 ### Bands
 
-| Method & path                     | Request body | Response (2xx)                      | Notes                                                                                                                                                                                                             |
-| --------------------------------- | ------------ | ----------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `GET /band/`                      | —            | `BandList`                          | `?page=` (1-based), `bands_per_page` from backend settings. `?sort=` is `name` (default) or `recent` (created_at desc).                                                                                           |
-| `GET /band/{id}`                  | —            | `BandDetail`                        | `404` → `null`. Eager-loads `releases` + `members` + `genres`.                                                                                                                                                    |
-| `GET /band/{id}/similar`          | —            | `SimilarBand[]`                     | Weighted score over shared members, `location`, shared genres, `label`, `country` (see `band/routes.py` `SIMILARITY_WEIGHTS`). Self excluded, score-desc then name, capped at `bands_per_page`. `404` if missing. |
-| `POST /band/new`                  | `BandCreate` | `{ message: string, id: number }`   |                                                                                                                                                                                                                   |
-| `POST /band/{id}/update`          | `BandCreate` | `"band updated"` (bare JSON string) | `404` if missing.                                                                                                                                                                                                 |
-| `DELETE /band/{id}/delete`        | —            | `"band deleted"`                    | Not used by the frontend yet.                                                                                                                                                                                     |
-| `GET /band/search?name=`          | —            | MusicBrainz passthrough             | `503` on upstream error. Not wired into UI yet.                                                                                                                                                                   |
-| `GET /band/search_releases?mbid=` | —            | MusicBrainz passthrough             | `404` / `503`. Not wired into UI yet.                                                                                                                                                                             |
+| Method & path                     | Request body | Response (2xx)                      | Notes                                                                                                                                                                                                                                                                                                                |
+| --------------------------------- | ------------ | ----------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET /band/`                      | —            | `BandList`                          | `?page=` (1-based), `bands_per_page` from backend settings. `?sort=` is `name` (default) or `recent` (created_at desc). Optional facets, combinable: `?genre=<slug>`, `?country=<exact>`, `?letter=<A–Z or #>` (`#` = name not starting A–Z; other values → `422`). The pagination total reflects the active facets. |
+| `GET /band/countries`             | —            | `CountryCount[]`                    | Distinct band countries with counts, desc by count then name. Free-text column (no normalization). Used to populate the country browse facet.                                                                                                                                                                        |
+| `GET /band/{id}`                  | —            | `BandDetail`                        | `404` → `null`. Eager-loads `releases` + `members` + `genres`.                                                                                                                                                                                                                                                       |
+| `GET /band/{id}/similar`          | —            | `SimilarBand[]`                     | Weighted score over shared members, `location`, shared genres, `label`, `country` (see `band/routes.py` `SIMILARITY_WEIGHTS`). Self excluded, score-desc then name, capped at `bands_per_page`. `404` if missing.                                                                                                    |
+| `POST /band/new`                  | `BandCreate` | `{ message: string, id: number }`   |                                                                                                                                                                                                                                                                                                                      |
+| `POST /band/{id}/update`          | `BandCreate` | `"band updated"` (bare JSON string) | `404` if missing.                                                                                                                                                                                                                                                                                                    |
+| `DELETE /band/{id}/delete`        | —            | `"band deleted"`                    | Not used by the frontend yet.                                                                                                                                                                                                                                                                                        |
+| `GET /band/search?name=`          | —            | MusicBrainz passthrough             | `503` on upstream error. Not wired into UI yet.                                                                                                                                                                                                                                                                      |
+| `GET /band/search_releases?mbid=` | —            | MusicBrainz passthrough             | `404` / `503`. Not wired into UI yet.                                                                                                                                                                                                                                                                                |
 
 ### Releases
 
-| Method & path                 | Request body    | Response (2xx)                    | Notes                                                                    |
-| ----------------------------- | --------------- | --------------------------------- | ------------------------------------------------------------------------ |
-| `GET /release/{id}`           | —               | `ReleaseDetail`                   | `404` → `null`. Includes nested `band` summary + sorted `tracks`.        |
-| `POST /release/new?band=`     | `ReleaseCreate` | `{ message: string, id: number }` | `band` query param is the parent band id; `404` if that band is missing. |
-| `POST /release/{id}/update`   | `ReleaseCreate` | `"release update successful"`     | `404` if missing.                                                        |
-| `DELETE /release/{id}/delete` | —               | `"release delete successful"`     | Not used by the frontend yet.                                            |
+| Method & path                 | Request body    | Response (2xx)                    | Notes                                                                                                                                                                                                             |
+| ----------------------------- | --------------- | --------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET /release/`               | —               | `ReleaseList`                     | `?page=` (1-based), `releases_per_page` from backend settings. `?sort=` is `recent` (default, created_at desc) or `year` (year desc with nulls last, then name). Items carry `band_id` + `band_name` for linking. |
+| `GET /release/{id}`           | —               | `ReleaseDetail`                   | `404` → `null`. Includes nested `band` summary + sorted `tracks`.                                                                                                                                                 |
+| `POST /release/new?band=`     | `ReleaseCreate` | `{ message: string, id: number }` | `band` query param is the parent band id; `404` if that band is missing.                                                                                                                                          |
+| `POST /release/{id}/update`   | `ReleaseCreate` | `"release update successful"`     | `404` if missing.                                                                                                                                                                                                 |
+| `DELETE /release/{id}/delete` | —               | `"release delete successful"`     | Not used by the frontend yet.                                                                                                                                                                                     |
 
 ### Tracks
 
@@ -59,6 +61,12 @@ the frontend depends on. The authoritative definitions live in:
 | `POST /track/new?release=`  | `TrackCreate` | `{ message, id }` | `release` query param is the parent release id. |
 | `POST /track/{id}/update`   | `TrackCreate` | `"track updated"` |                                                 |
 | `DELETE /track/{id}/delete` | —             | `"track deleted"` |                                                 |
+
+### Genres
+
+| Method & path | Request body | Response (2xx) | Notes                                                                                                                                       |
+| ------------- | ------------ | -------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET /genre/` | —            | `Genre[]`      | The full curated sub-genre vocabulary, alphabetical by display name. Served from `backend/app/genres.py` (works even before the seed runs). |
 
 ### Search
 
@@ -85,6 +93,12 @@ use `.nullish()`, accepting `null` and `undefined`.
   next: number | null;   // next page number, or null at the end
   prev: number | null;   // previous page number, or null on page 1
 }
+```
+
+### `CountryCount` — `GET /band/countries`
+
+```json
+{ country: string; count: number; }
 ```
 
 ### `BandListItem` / `BandBase`
@@ -235,6 +249,19 @@ the album (`/release/{id}`) or its band.
   art?: string;
   band_id: number;
   band_name: string;
+}
+```
+
+### `ReleaseList` — `GET /release/`
+
+Shape-identical envelope to `BandList`. `ReleaseListItem` matches
+`AlbumSearchItem` field-for-field — the same tile renders both.
+
+```json
+{
+  releases: AlbumSearchItem[];
+  next: number | null;
+  prev: number | null;
 }
 ```
 

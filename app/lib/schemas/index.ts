@@ -109,6 +109,12 @@ export const bandListSchema = z.object({
   prev: z.number().nullable(),
 });
 
+/** A distinct band country with its band count (`GET /band/countries`). */
+export const countryCountSchema = z.object({
+  country: z.string(),
+  count: z.number(),
+});
+
 /** A band matched by a catalogue search (`GET /search/`). */
 export const bandSearchItemSchema = z.object({
   id: z.number(),
@@ -127,6 +133,16 @@ export const albumSearchItemSchema = z.object({
   art: z.string().nullish(),
   band_id: z.number(),
   band_name: z.string(),
+});
+
+/** A release in the paginated catalogue listing (`GET /release/`). */
+export const releaseListItemSchema = albumSearchItemSchema;
+
+/** Paginated release list envelope (`GET /release/`). */
+export const releaseListSchema = z.object({
+  releases: z.array(releaseListItemSchema),
+  next: z.number().nullable(),
+  prev: z.number().nullable(),
 });
 
 /** Combined search results across bands and albums (`GET /search/?q=`). */
@@ -183,7 +199,10 @@ export type ReleaseDetail = z.infer<typeof releaseDetailSchema>;
 export type BandListItem = z.infer<typeof bandListItemSchema>;
 export type Band = z.infer<typeof bandSchema>;
 export type BandList = z.infer<typeof bandListSchema>;
+export type CountryCount = z.infer<typeof countryCountSchema>;
 export type MutationResult = z.infer<typeof mutationResultSchema>;
 export type BandSearchItem = z.infer<typeof bandSearchItemSchema>;
 export type AlbumSearchItem = z.infer<typeof albumSearchItemSchema>;
+export type ReleaseListItem = z.infer<typeof releaseListItemSchema>;
+export type ReleaseList = z.infer<typeof releaseListSchema>;
 export type SearchResults = z.infer<typeof searchResultsSchema>;

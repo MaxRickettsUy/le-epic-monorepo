@@ -47,6 +47,7 @@ the frontend depends on. The authoritative definitions live in:
 
 | Method & path                 | Request body    | Response (2xx)                    | Notes                                                                    |
 | ----------------------------- | --------------- | --------------------------------- | ------------------------------------------------------------------------ |
+| `GET /release/`               | —               | `ReleaseList`                     | `?page=` (1-based), `releases_per_page` from backend settings. `?sort=` is `recent` (default, created_at desc) or `year` (year desc with nulls last, then name). Items carry `band_id` + `band_name` for linking. |
 | `GET /release/{id}`           | —               | `ReleaseDetail`                   | `404` → `null`. Includes nested `band` summary + sorted `tracks`.        |
 | `POST /release/new?band=`     | `ReleaseCreate` | `{ message: string, id: number }` | `band` query param is the parent band id; `404` if that band is missing. |
 | `POST /release/{id}/update`   | `ReleaseCreate` | `"release update successful"`     | `404` if missing.                                                        |
@@ -248,6 +249,19 @@ the album (`/release/{id}`) or its band.
   art?: string;
   band_id: number;
   band_name: string;
+}
+```
+
+### `ReleaseList` — `GET /release/`
+
+Shape-identical envelope to `BandList`. `ReleaseListItem` matches
+`AlbumSearchItem` field-for-field — the same tile renders both.
+
+```json
+{
+  releases: AlbumSearchItem[];
+  next: number | null;
+  prev: number | null;
 }
 ```
 

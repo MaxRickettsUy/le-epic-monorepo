@@ -55,3 +55,58 @@ def test_deleting_band_cascades_releases(client):
     rel_id = client.post(f"/release/new?band={band_id}", json=RELEASE).json()["id"]
     client.request("DELETE", f"/band/{band_id}/delete")
     assert client.get(f"/release/{rel_id}").status_code == 404
+
+
+# --- listing (`GET /release/`) ---------------------------------------------
+
+
+def test_release_list_recent_orders_newest_first_and_includes_band(client):
+    band_id = _band(client)
+    older = client.post(f"/release/new?band={band_id}", json={**RELEASE, "name": "Older"}).json()[
+        "id"
+    ]
+    newer = client.post(f"/release/new?band={band_id}", json={**RELEASE, "name": "Newer"}).json()[
+        "id"
+    ]
+
+    body = client.get("/release/?sort=recent").json()
+    ids = [r["id"] for r in body["releases"]]
+    assert ids == [newer, older]
+    # Each item carries the band identity for linking, not the nested band.
+    item = body["releases"][0]
+    assert item["band_id"] == band_id
+    assert item["band_name"] == "Minor Threat"
+    assert item["name"] == "Newer"
+    assert body["next"] is None
+    assert body["prev"] is None
+
+
+def test_release_list_pagination(client):
+    band_id = _band(client)
+    for i in range(12):
+        client.post(f"/release/new?band={band_id}", json={**RELEASE, "name": f"R{i:02d}"})
+
+    p1 = client.get("/release/?page=1").json()
+    assert len(p1["releases"]) == 10
+    assert p1["next"] == 2
+    assert p1["prev"] is None
+
+    p2 = client.get("/release/?page=2").json()
+    assert len(p2["releases"]) == 2
+    assert p2["next"] is None
+    assert p2["prev"] == 1
+
+
+def test_release_list_sort_by_year_desc_nulls_last(client):
+    band_id = _band(client)
+    client.post(f"/release/new?band={band_id}", json={**RELEASE, "name": "Yless", "year": None})
+    client.post(f"/release/new?band={band_id}", json={**RELEASE, "name": "Y1990", "year": 1990})
+    client.post(f"/release/new?band={band_id}", json={**RELEASE, "name": "Y2000", "year": 2000})
+
+    body = client.get("/release/?sort=year").json()
+    assert [r["name"] for r in body["releases"]] == ["Y2000", "Y1990", "Yless"]
+
+
+def test_release_list_empty_catalogue(client):
+    body = client.get("/release/").json()
+    assert body == {"releases": [], "next": None, "prev": None}

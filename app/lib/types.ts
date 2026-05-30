@@ -18,6 +18,8 @@ export type {
   MutationResult,
   BandSearchItem,
   AlbumSearchItem,
+  ReleaseListItem,
+  ReleaseList,
   SearchResults,
 } from "./schemas";
 

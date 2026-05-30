@@ -1,6 +1,6 @@
 import { z } from "zod";
-import type { MutationResult, ReleaseDetail } from "@/lib/types";
-import { mutationResultSchema, releaseDetailSchema } from "@/lib/schemas";
+import type { MutationResult, ReleaseDetail, ReleaseList } from "@/lib/types";
+import { mutationResultSchema, releaseDetailSchema, releaseListSchema } from "@/lib/schemas";
 import { apiFetch, apiFetchOrNull } from "./client";
 
 export interface ReleaseCreateInput {
@@ -10,6 +10,21 @@ export interface ReleaseCreateInput {
   release_type?: string | null;
   label?: string | null;
   year?: number | null;
+}
+
+export interface ReleaseListFilters {
+  page?: number;
+  sort?: "recent" | "year";
+}
+
+/** Paginated list of releases for catalogue discovery (`GET /release/`). */
+export function listReleases(filters: ReleaseListFilters = {}): Promise<ReleaseList> {
+  const params = new URLSearchParams();
+  params.set("page", String(filters.page ?? 1));
+  params.set("sort", filters.sort ?? "recent");
+  return apiFetch(`/release/?${params.toString()}`, releaseListSchema, {
+    next: { revalidate: 60 },
+  });
 }
 
 /** Release detail (`GET /release/{id}`); `null` when the release does not exist. */

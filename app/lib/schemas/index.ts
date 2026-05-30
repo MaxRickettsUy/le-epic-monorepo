@@ -135,6 +135,16 @@ export const albumSearchItemSchema = z.object({
   band_name: z.string(),
 });
 
+/** A release in the paginated catalogue listing (`GET /release/`). */
+export const releaseListItemSchema = albumSearchItemSchema;
+
+/** Paginated release list envelope (`GET /release/`). */
+export const releaseListSchema = z.object({
+  releases: z.array(releaseListItemSchema),
+  next: z.number().nullable(),
+  prev: z.number().nullable(),
+});
+
 /** Combined search results across bands and albums (`GET /search/?q=`). */
 export const searchResultsSchema = z.object({
   query: z.string(),
@@ -193,4 +203,6 @@ export type CountryCount = z.infer<typeof countryCountSchema>;
 export type MutationResult = z.infer<typeof mutationResultSchema>;
 export type BandSearchItem = z.infer<typeof bandSearchItemSchema>;
 export type AlbumSearchItem = z.infer<typeof albumSearchItemSchema>;
+export type ReleaseListItem = z.infer<typeof releaseListItemSchema>;
+export type ReleaseList = z.infer<typeof releaseListSchema>;
 export type SearchResults = z.infer<typeof searchResultsSchema>;

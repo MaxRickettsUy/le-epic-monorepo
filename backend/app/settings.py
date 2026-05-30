@@ -15,6 +15,7 @@ class Settings(BaseSettings):
     # Genre tag the catalogue is scoped to.
     seed_tag: str = "hardcore punk"
     bands_per_page: int = 10
+    releases_per_page: int = 10
 
     # Origins allowed by CORS. Comma-separated in the env var; "*" allows all.
     # Defaults to local-dev; set an explicit allowlist in deployed environments.

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Avatar, AvatarFallback } from "./avatar";
 import { Input } from "./input";
+import { MobileMenu } from "./mobile-menu";
 
 const SearchInput = () => (
   <form action="/search" method="get" role="search">
@@ -19,15 +20,21 @@ export const Header = () => {
           <AvatarFallback>L</AvatarFallback>
         </Avatar>
       </Link>
-      <nav aria-label="Primary" className="ml-auto flex flex-row items-center gap-[1rem]">
+      <nav
+        aria-label="Primary"
+        className="ml-auto hidden flex-row items-center gap-[1rem] md:flex"
+      >
         <Link href="/bands" className="text-sm font-medium hover:underline">
           Browse
         </Link>
         <SearchInput />
       </nav>
-      <Avatar>
+      <Avatar className="ml-auto md:ml-0">
         <AvatarFallback>U</AvatarFallback>
       </Avatar>
+      <div className="md:hidden">
+        <MobileMenu />
+      </div>
     </header>
   );
 };

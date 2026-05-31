@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { Avatar, AvatarFallback } from "./avatar";
 import { Input } from "./input";
-import { ThemeToggle } from "./theme-toggle";
 
 const SearchInput = () => (
   <form action="/search" method="get" role="search">
@@ -25,7 +24,6 @@ export const Header = () => {
           Browse
         </Link>
         <SearchInput />
-        <ThemeToggle />
       </nav>
       <Avatar>
         <AvatarFallback>U</AvatarFallback>

@@ -70,9 +70,22 @@ export default async function NeedsReviewPage({ searchParams }: PageProps) {
             {bands.map((band) => (
               <TableRow key={band.id}>
                 <TableCell className="font-medium">
-                  <Link href={`/band/${band.id}`} className="hover:underline">
-                    {band.name}
-                  </Link>
+                  <div className="flex items-center gap-2">
+                    <Link href={`/band/${band.id}`} className="hover:underline">
+                      {band.name}
+                    </Link>
+                    {band.mbid && (
+                      <a
+                        href={`https://musicbrainz.org/artist/${band.mbid}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-xs text-muted-foreground underline hover:no-underline"
+                        title="Open on MusicBrainz"
+                      >
+                        MB&nbsp;↗
+                      </a>
+                    )}
+                  </div>
                 </TableCell>
                 <TableCell className="text-muted-foreground">{band.country || "—"}</TableCell>
                 <TableCell>

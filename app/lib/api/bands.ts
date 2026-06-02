@@ -115,3 +115,20 @@ export function updateBand(id: number, input: BandCreateInput): Promise<string> 
     body: JSON.stringify(input),
   });
 }
+
+export interface DeleteBandOptions {
+  /** Record the band's MBID in the blacklist so seed.mb_dump won't resurrect it. */
+  blacklist?: boolean;
+  /** Optional curator note stored alongside the blacklist entry. */
+  reason?: string | null;
+}
+
+export function deleteBand(id: number, options: DeleteBandOptions = {}): Promise<string> {
+  const params = new URLSearchParams();
+  if (options.blacklist === false) params.set("blacklist", "false");
+  if (options.reason) params.set("reason", options.reason);
+  const qs = params.toString();
+  return apiFetch(`/band/${id}/delete${qs ? `?${qs}` : ""}`, z.string(), {
+    method: "DELETE",
+  });
+}

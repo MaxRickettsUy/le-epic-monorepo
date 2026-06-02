@@ -8,8 +8,10 @@ export {
   getSimilarBands,
   createBand,
   updateBand,
+  deleteBand,
   type BandListFilters,
   type BandCreateInput,
+  type DeleteBandOptions,
   type MutationResult,
 } from "./bands";
 export {

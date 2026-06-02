@@ -20,10 +20,7 @@ export const Header = () => {
           <AvatarFallback>L</AvatarFallback>
         </Avatar>
       </Link>
-      <nav
-        aria-label="Primary"
-        className="ml-auto hidden flex-row items-center gap-[1rem] md:flex"
-      >
+      <nav aria-label="Primary" className="ml-auto hidden flex-row items-center gap-[1rem] md:flex">
         <Link href="/bands" className="text-sm font-medium hover:underline">
           Browse
         </Link>

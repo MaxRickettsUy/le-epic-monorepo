@@ -2,12 +2,20 @@
 
 import { useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { deleteBandAction } from "@/app/actions";
 
 export const DeleteBandSection = ({ bandId, bandName }: { bandId: number; bandName: string }) => {
-  const [confirming, setConfirming] = useState(false);
+  const [open, setOpen] = useState(false);
   const [reason, setReason] = useState("");
   const [blacklist, setBlacklist] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -29,6 +37,15 @@ export const DeleteBandSection = ({ bandId, bandName }: { bandId: number; bandNa
     });
   };
 
+  const onOpenChange = (next: boolean) => {
+    if (isPending) return;
+    setOpen(next);
+    if (!next) {
+      setReason("");
+      setError(null);
+    }
+  };
+
   return (
     <section className="flex flex-col gap-3 rounded-md border border-destructive/40 p-4">
       <div className="flex flex-col gap-1">
@@ -40,44 +57,59 @@ export const DeleteBandSection = ({ bandId, bandName }: { bandId: number; bandNa
         </p>
       </div>
 
-      {!confirming ? (
-        <div>
-          <Button type="button" variant="destructive" onClick={() => setConfirming(true)}>
-            Delete band&hellip;
-          </Button>
-        </div>
-      ) : (
-        <div className="flex flex-col gap-3">
-          <p className="text-sm">
-            Permanently delete <span className="font-semibold">{bandName}</span>? This
-            can&rsquo;t be undone.
-          </p>
+      <div>
+        <Button type="button" variant="destructive" onClick={() => setOpen(true)}>
+          Delete band&hellip;
+        </Button>
+      </div>
 
-          <div className="flex flex-col gap-1">
-            <Label htmlFor="delete-reason">Reason (optional, stored on the blacklist entry)</Label>
-            <Input
-              id="delete-reason"
-              value={reason}
-              onChange={(e) => setReason(e.target.value)}
-              maxLength={500}
-              placeholder="e.g. off-genre — MB tags say grindcore, not hardcore punk"
-              disabled={isPending}
-            />
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete {bandName}?</DialogTitle>
+            <DialogDescription>
+              Permanently removes the band, its albums, tracks, and member links. This
+              can&rsquo;t be undone.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="flex flex-col gap-3">
+            <div className="flex flex-col gap-1">
+              <Label htmlFor="delete-reason">
+                Reason (optional, stored on the blacklist entry)
+              </Label>
+              <Input
+                id="delete-reason"
+                value={reason}
+                onChange={(e) => setReason(e.target.value)}
+                maxLength={500}
+                placeholder="e.g. off-genre — MB tags say grindcore, not hardcore punk"
+                disabled={isPending}
+              />
+            </div>
+
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={blacklist}
+                onChange={(e) => setBlacklist(e.target.checked)}
+                disabled={isPending}
+              />
+              Blacklist the MBID so seeding won&rsquo;t bring it back
+            </label>
+
+            {error && <p className="text-sm text-destructive">{error}</p>}
           </div>
 
-          <label className="flex items-center gap-2 text-sm">
-            <input
-              type="checkbox"
-              checked={blacklist}
-              onChange={(e) => setBlacklist(e.target.checked)}
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => onOpenChange(false)}
               disabled={isPending}
-            />
-            Blacklist the MBID so seeding won&rsquo;t bring it back
-          </label>
-
-          {error && <p className="text-sm text-destructive">{error}</p>}
-
-          <div className="flex gap-2">
+            >
+              Cancel
+            </Button>
             <Button
               type="button"
               variant="destructive"
@@ -86,21 +118,9 @@ export const DeleteBandSection = ({ bandId, bandName }: { bandId: number; bandNa
             >
               {isPending ? "Deleting…" : "Confirm delete"}
             </Button>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => {
-                setConfirming(false);
-                setReason("");
-                setError(null);
-              }}
-              disabled={isPending}
-            >
-              Cancel
-            </Button>
-          </div>
-        </div>
-      )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </section>
   );
 };

@@ -69,6 +69,9 @@ export function MobileMenu() {
             <Link href="/bands" className="text-lg font-medium hover:underline">
               Browse
             </Link>
+            <Link href="/admin/needs-review" className="text-lg font-medium hover:underline">
+              Review
+            </Link>
           </nav>
         </div>
       )}

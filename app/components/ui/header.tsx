@@ -24,6 +24,9 @@ export const Header = () => {
         <Link href="/bands" className="text-sm font-medium hover:underline">
           Browse
         </Link>
+        <Link href="/admin/needs-review" className="text-sm font-medium hover:underline">
+          Review
+        </Link>
         <SearchInput />
       </nav>
       <Avatar className="ml-auto md:ml-0">

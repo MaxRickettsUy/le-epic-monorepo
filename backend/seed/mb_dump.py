@@ -36,9 +36,13 @@ logger = logging.getLogger("seed.mb_dump")
 # MusicBrainz link_type gid for "member of band".
 MEMBER_OF_BAND_GID = "5be4c609-9afa-4ea0-910b-12ffb71e3821"
 
+# MBIDs are cast to text on the way out: psycopg2 returns MB's `uuid` columns
+# as `UUID` objects, but the app schema stores them as `String(36)`. Without
+# this cast the existing-row lookups (`existing_bands.get(row["mbid"])`)
+# miss on re-runs and the seed tries to re-insert every row.
 _ARTIST_SQL = text(
     """
-    SELECT a.id AS artist_id, a.gid AS mbid, a.name AS name,
+    SELECT a.id AS artist_id, a.gid::text AS mbid, a.name AS name,
            ar.name AS area_name, a.ended AS ended,
            a.begin_date_year AS begin_year, a.end_date_year AS end_year
     FROM artist a
@@ -51,7 +55,7 @@ _ARTIST_SQL = text(
 
 _RELEASE_GROUP_SQL = text(
     """
-    SELECT acn.artist AS artist_id, rg.gid AS rg_mbid, rg.name AS rg_name,
+    SELECT acn.artist AS artist_id, rg.gid::text AS rg_mbid, rg.name AS rg_name,
            rgpt.name AS primary_type, rgm.first_release_date_year AS year
     FROM release_group rg
     JOIN artist_credit_name acn ON acn.artist_credit = rg.artist_credit
@@ -63,7 +67,7 @@ _RELEASE_GROUP_SQL = text(
 
 _MEMBER_SQL = text(
     """
-    SELECT laa.entity1 AS band_id, m.gid AS member_mbid, m.name AS member_name,
+    SELECT laa.entity1 AS band_id, m.gid::text AS member_mbid, m.name AS member_name,
            MIN(lat.name) AS role
     FROM l_artist_artist laa
     JOIN link l ON l.id = laa.link

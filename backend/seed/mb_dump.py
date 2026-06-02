@@ -29,6 +29,7 @@ from app.database import SessionLocal
 from app.genres import CURATED_GENRES, slug_for_tag
 from app.models import Album, Band, BandBlacklist, BandGenre, BandMember, Genre, Member
 from app.settings import settings
+from seed.blacklist import apply_blacklist
 from seed.outliers import summarize_tags
 
 logger = logging.getLogger("seed.mb_dump")
@@ -133,6 +134,10 @@ def run_seed(mb_engine: Engine, app_session: Session, *, tag: str | None = None)
     """
     tag = tag or settings.seed_tag
     stats = SeedStats()
+
+    # Apply the checked-in blacklist first so the table is at least as broad as
+    # the source of truth before we read it back to filter artist rows.
+    apply_blacklist(app_session)
 
     with mb_engine.connect() as mb:
         # --- Genres (curated vocabulary) --------------------------------

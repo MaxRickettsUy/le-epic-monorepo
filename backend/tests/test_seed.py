@@ -181,6 +181,31 @@ def test_seed_subgenres_idempotent(mb_engine, app_session):
     assert stats2.genre_links_updated == 0
 
 
+def test_seed_applies_blacklist_json_before_filtering(
+    mb_engine, app_session, tmp_path, monkeypatch
+):
+    # A checked-in blacklist entry should be upserted into band_blacklist by
+    # run_seed itself, so a fresh DB stays sticky without having to first call
+    # the delete endpoint manually.
+    blacklist_file = tmp_path / "blacklist.json"
+    blacklist_file.write_text(
+        '[{"mbid": "gauze-gid", "reason": "checked-in: not hardcore"}]'
+    )
+    import seed.blacklist as bl
+
+    monkeypatch.setattr(bl, "BLACKLIST_PATH", blacklist_file)
+
+    stats = run_seed(mb_engine, app_session, tag="hardcore punk")
+
+    names = {b.name for b in app_session.query(Band).all()}
+    assert "GauZe" not in names
+    assert names == {"Minor Threat", "Discharge"}
+    assert stats.bands_blacklisted == 1
+    entry = app_session.get(BandBlacklist, "gauze-gid")
+    assert entry is not None
+    assert entry.reason == "checked-in: not hardcore"
+
+
 def test_seed_skips_blacklisted_mbids(mb_engine, app_session):
     # First pass seeds all three bands.
     run_seed(mb_engine, app_session, tag="hardcore punk")

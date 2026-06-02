@@ -76,5 +76,27 @@ next re-seed. The `band_blacklist` table holds MBIDs the seeder must skip:
 - The table is keyed by MBID, so bands without one (manually-created entries)
   are not blacklisted on delete and would not be re-seeded anyway.
 
-To un-blacklist an MBID, delete its row directly from `band_blacklist` and
-re-run the seed.
+### `blacklist.json` is the source of truth
+
+`band_blacklist` is a DB table, so an MBID blacklisted on your laptop is *not*
+blacklisted on a teammate's laptop or on prod. `seed/blacklist.json` is the
+checked-in record curator decisions must land in to be durable:
+
+```json
+[
+  { "mbid": "8a2c1d3e-...-aaaa", "reason": "pop band, mistagged" },
+  { "mbid": "1f4b2a7c-...-bbbb", "reason": "false positive (one stray tag)" }
+]
+```
+
+`seed.mb_dump` calls `seed.blacklist.apply_blacklist` at the top of every run,
+which upserts every JSON entry into `band_blacklist` *before* the artist rows
+are filtered. So:
+
+- Delete-endpoint workflow: API call updates the table on your DB, then
+  copy the MBID + reason into `blacklist.json` and commit. Next teammate /
+  next environment / next DB reset picks it up automatically.
+- `apply_blacklist` is additive only — it never removes rows the file no
+  longer mentions, so a curator can experiment with delete-only entries
+  without losing them. To un-blacklist for everyone, delete the JSON entry
+  *and* the DB row.

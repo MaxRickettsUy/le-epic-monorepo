@@ -266,8 +266,11 @@ def delete(
         True,
         description=(
             "If true (default), the band's MBID is recorded in band_blacklist "
-            "so seed.mb_dump skips it on future runs. Set false to allow a "
-            "later re-seed to bring the band back (e.g. for misclick recovery)."
+            "so seed.mb_dump skips it on future runs. To make the decision "
+            "durable across DBs / teammates / prod, also add the MBID to "
+            "seed/blacklist.json and commit (the table is per-DB; the JSON "
+            "file is the source of truth). Set false to allow a later re-seed "
+            "to bring the band back (e.g. for misclick recovery)."
         ),
     ),
     reason: str | None = Query(

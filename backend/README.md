@@ -23,17 +23,21 @@ release-groups, and band membership in a few SQL queries.
    (downloads the twice-weekly dump and imports it — multi-GB, takes a while).
 2. Point the seeder at it via `MB_DATABASE_URL` (see `.env.example`); default is
    `postgresql+psycopg2://musicbrainz:musicbrainz@localhost:5433/musicbrainz_db`.
-3. Run the seed, then fetch cover art:
+3. Run the seed, then fetch cover art and band art:
 
    ```bash
    docker compose run --rm --entrypoint bash hc_archives_back -lc \
-     "python -m seed.mb_dump && python -m seed.cover_art"
+     "python -m seed.mb_dump && python -m seed.cover_art && python -m seed.band_art"
    ```
 
    - `seed.mb_dump` upserts bands/albums/members by MBID (idempotent — safe to
      re-run after each dump refresh; see Phase 5 in `plans/resurrection.md`).
    - `seed.cover_art` sets `album.art` from the Cover Art Archive for albums that
      have a release-group MBID but no art yet.
+   - `seed.band_art` sets `band.band_picture` / `band.logo` from Wikidata
+     (`P18` / `P154`) for bands that link to a Wikidata QID via MB. Stores stable
+     `commons.wikimedia.org/wiki/Special:FilePath/...` URLs. Idempotent: only
+     fills fields that are still null.
 
 ## Seed lightweight dev data
 

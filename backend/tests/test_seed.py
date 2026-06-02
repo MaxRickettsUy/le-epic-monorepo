@@ -12,7 +12,7 @@ from sqlalchemy.pool import StaticPool
 from app.database import Base
 from app.genres import CURATED_GENRES
 from app.models import Album, Band, BandGenre, BandMember, Genre, Member
-from seed import cover_art
+from seed import band_art, cover_art
 from seed.mb_dump import MEMBER_OF_BAND_GID, run_seed
 
 MB_SCHEMA = """
@@ -29,6 +29,8 @@ CREATE TABLE link (id INTEGER PRIMARY KEY, link_type INTEGER);
 CREATE TABLE l_artist_artist (id INTEGER PRIMARY KEY, link INTEGER, entity0 INTEGER, entity1 INTEGER);
 CREATE TABLE link_attribute_type (id INTEGER PRIMARY KEY, name TEXT);
 CREATE TABLE link_attribute (link INTEGER, attribute_type INTEGER);
+CREATE TABLE url (id INTEGER PRIMARY KEY, url TEXT);
+CREATE TABLE l_artist_url (id INTEGER PRIMARY KEY, link INTEGER, entity0 INTEGER, entity1 INTEGER);
 """
 
 MB_DATA = [
@@ -61,12 +63,17 @@ MB_DATA = [
     "(201,'rg-dis','Hear Nothing Say Nothing',111,1),"
     "(202,'rg-gauze','Equalizing Distort',112,1)",
     "INSERT INTO release_group_meta VALUES (200,1983),(201,1982),(202,1986)",
-    f"INSERT INTO link_type VALUES (1,'{MEMBER_OF_BAND_GID}','member of band')",
-    "INSERT INTO link VALUES (1,1),(2,1)",
+    f"INSERT INTO link_type VALUES (1,'{MEMBER_OF_BAND_GID}','member of band'),"
+    f"(2,'{band_art.WIKIDATA_LINK_GID}','wikidata')",
+    "INSERT INTO link VALUES (1,1),(2,1),(3,2),(4,2)",
     # entity0 = member person, entity1 = band. Both members in Minor Threat.
     "INSERT INTO l_artist_artist VALUES (1,1,20,10),(2,2,21,10)",
     "INSERT INTO link_attribute_type VALUES (1,'vocals')",
     "INSERT INTO link_attribute VALUES (1,1)",  # link 1 (Ian) -> vocals
+    # Wikidata URLs: Minor Threat -> Q123, Discharge -> Q456. GauZe has none.
+    "INSERT INTO url VALUES (1,'https://www.wikidata.org/wiki/Q123'),"
+    "(2,'https://www.wikidata.org/wiki/Q456')",
+    "INSERT INTO l_artist_url VALUES (1,3,10,1),(2,4,11,2)",
 ]
 
 
@@ -186,3 +193,55 @@ def test_cover_art_sets_only_found_art(mb_engine, app_session):
     art = {a.release_group_mbid: a.art for a in app_session.query(Album).all()}
     assert art["rg-mt"] == cover_art.cover_art_url("rg-mt")
     assert art["rg-dis"] is None
+
+
+def test_band_art_sets_picture_and_logo_from_wikidata(mb_engine, app_session):
+    run_seed(mb_engine, app_session, tag="hardcore punk")
+
+    # Fake Wikidata: Q123 has both image + logo; Q456 has only an image.
+    def fake_resolve(qids):
+        catalog = {
+            "Q123": {"image": "Minor Threat band.jpg", "logo": "MT logo.svg"},
+            "Q456": {"image": "Discharge.png", "logo": None},
+        }
+        return {q: catalog[q] for q in qids if q in catalog}
+
+    stats = band_art.fetch_band_art(mb_engine, app_session, resolve=fake_resolve)
+
+    assert stats.checked == 3  # MT, Discharge, GauZe — all eligible (no art yet)
+    assert stats.picture_set == 2
+    assert stats.logo_set == 1
+    assert stats.no_wikidata == 1  # GauZe has no wikidata link
+
+    bands = {b.name: b for b in app_session.query(Band).all()}
+    assert bands["Minor Threat"].band_picture == band_art.commons_url("Minor Threat band.jpg")
+    assert bands["Minor Threat"].logo == band_art.commons_url("MT logo.svg")
+    assert bands["Discharge"].band_picture == band_art.commons_url("Discharge.png")
+    assert bands["Discharge"].logo is None
+    assert bands["GauZe"].band_picture is None
+
+
+def test_band_art_only_fills_missing_fields(mb_engine, app_session):
+    run_seed(mb_engine, app_session, tag="hardcore punk")
+
+    # First pass: pictures only, no logos.
+    def first(qids):
+        return {q: {"image": f"{q}-first.jpg", "logo": None} for q in qids}
+
+    band_art.fetch_band_art(mb_engine, app_session, resolve=first)
+
+    # Second pass: Wikidata now exposes both fields. Pictures are already set,
+    # so they must not be overwritten — only the still-null logos get filled.
+    def second(qids):
+        return {q: {"image": f"{q}-second.jpg", "logo": f"{q}-logo.svg"} for q in qids}
+
+    stats2 = band_art.fetch_band_art(mb_engine, app_session, resolve=second)
+
+    assert stats2.picture_set == 0  # already set; not clobbered
+    assert stats2.logo_set == 2  # Minor Threat + Discharge
+
+    bands = {b.name: b for b in app_session.query(Band).all()}
+    assert bands["Minor Threat"].band_picture == band_art.commons_url("Q123-first.jpg")
+    assert bands["Minor Threat"].logo == band_art.commons_url("Q123-logo.svg")
+    assert bands["Discharge"].band_picture == band_art.commons_url("Q456-first.jpg")
+    assert bands["Discharge"].logo == band_art.commons_url("Q456-logo.svg")

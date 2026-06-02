@@ -9,9 +9,13 @@ const nextConfig = {
         port: "",
         pathname: "/640/**",
       },
-      // Band/release art hosts are not yet finalized (see plan open question #3).
-      // Allow an explicit host via env until the CDN is decided, instead of a
-      // wildcard that would permit any https origin.
+      // Album art (Cover Art Archive) — `seed.cover_art` writes URLs here.
+      { protocol: "https", hostname: "coverartarchive.org" },
+      // Band art (Wikidata → Wikimedia Commons) — `seed.band_art` writes
+      // Special:FilePath URLs that 302 to upload.wikimedia.org.
+      { protocol: "https", hostname: "commons.wikimedia.org" },
+      { protocol: "https", hostname: "upload.wikimedia.org" },
+      // Escape hatch for a future CDN; opt-in via env.
       ...(process.env.NEXT_PUBLIC_ART_HOST
         ? [{ protocol: "https", hostname: process.env.NEXT_PUBLIC_ART_HOST }]
         : []),

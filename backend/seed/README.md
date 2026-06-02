@@ -47,7 +47,9 @@ nothing to say about them.
 
 1. Run the script and open the CSV.
 2. For each candidate, decide:
-   - **Doesn't belong** → `DELETE /band/{id}/delete` (cascades albums/members).
+   - **Doesn't belong** → `DELETE /band/{id}/delete` (cascades albums/members,
+     and by default records the band's MBID in `band_blacklist` so a future
+     `seed.mb_dump` does not re-add it — see below).
    - **Belongs but is a borderline / off-genre inclusion** → set a short
      `inclusion_reason` via the band edit form or `POST /band/{id}/update`,
      e.g. "Included for split LP with X". The note renders on the band
@@ -57,3 +59,22 @@ nothing to say about them.
 
 The script is read-only and idempotent; it never writes `inclusion_reason` or
 deletes bands. Those decisions are intentionally manual.
+
+## Blacklist: making deletions stick
+
+`seed.mb_dump` pulls every artist MusicBrainz tags with `settings.seed_tag`.
+Without a blacklist, any band a curator deletes would silently come back on the
+next re-seed. The `band_blacklist` table holds MBIDs the seeder must skip:
+
+- `DELETE /band/{id}/delete` records the deleted band's MBID in
+  `band_blacklist` by default. Pass `?blacklist=false` to skip that (e.g. for
+  misclick recovery you intend to re-seed) and `?reason=...` to attach a
+  curator note.
+- `seed.mb_dump` queries `band_blacklist` once per run and drops matching
+  artist rows before any upsert. The skip count is reported as
+  `bands_blacklisted` in the run stats.
+- The table is keyed by MBID, so bands without one (manually-created entries)
+  are not blacklisted on delete and would not be re-seeded anyway.
+
+To un-blacklist an MBID, delete its row directly from `band_blacklist` and
+re-run the seed.

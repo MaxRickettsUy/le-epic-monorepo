@@ -64,6 +64,50 @@ def test_update_and_delete(client):
     assert client.get(f"/band/{band_id}").status_code == 404
 
 
+def _create_with_mbid(client, db, mbid: str, **overrides) -> int:
+    from app.models import Band
+
+    band_id = _create(client, **overrides).json()["id"]
+    band = db.get(Band, band_id)
+    band.mbid = mbid
+    db.commit()
+    return band_id
+
+
+def test_delete_blacklists_mbid_by_default(client, db):
+    from app.models import BandBlacklist
+
+    band_id = _create_with_mbid(client, db, "mt-gid")
+    res = client.request(
+        "DELETE", f"/band/{band_id}/delete", params={"reason": "off-genre"}
+    )
+    assert res.status_code == 200
+
+    entry = db.get(BandBlacklist, "mt-gid")
+    assert entry is not None
+    assert entry.reason == "off-genre"
+
+
+def test_delete_blacklist_opt_out(client, db):
+    from app.models import BandBlacklist
+
+    band_id = _create_with_mbid(client, db, "mt-gid")
+    res = client.request("DELETE", f"/band/{band_id}/delete?blacklist=false")
+    assert res.status_code == 200
+    assert db.get(BandBlacklist, "mt-gid") is None
+
+
+def test_delete_band_without_mbid_does_not_blacklist(client, db):
+    from app.models import BandBlacklist
+
+    # Default BAND fixture has no mbid; nothing to blacklist by.
+    band_id = _create(client).json()["id"]
+    assert (
+        client.request("DELETE", f"/band/{band_id}/delete").status_code == 200
+    )
+    assert db.query(BandBlacklist).count() == 0
+
+
 def test_similar_404(client):
     assert client.get("/band/999/similar").status_code == 404
 

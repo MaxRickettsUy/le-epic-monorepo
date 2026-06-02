@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session, selectinload
 
 from app import schemas
 from app.database import get_db
-from app.models import Band, BandGenre, BandMember, Genre
+from app.models import Band, BandBlacklist, BandGenre, BandMember, Genre
 from app.services import musicbrainz
 from app.settings import settings
 
@@ -260,10 +260,32 @@ def update(id: int, payload: schemas.BandCreate, db: Session = Depends(get_db)):
 
 
 @router.delete("/{id}/delete")
-def delete(id: int, db: Session = Depends(get_db)):
+def delete(
+    id: int,
+    blacklist: bool = Query(
+        True,
+        description=(
+            "If true (default), the band's MBID is recorded in band_blacklist "
+            "so seed.mb_dump skips it on future runs. Set false to allow a "
+            "later re-seed to bring the band back (e.g. for misclick recovery)."
+        ),
+    ),
+    reason: str | None = Query(
+        None,
+        max_length=500,
+        description="Optional curator note stored alongside the blacklist entry.",
+    ),
+    db: Session = Depends(get_db),
+):
     band = db.get(Band, id)
     if band is None:
         raise HTTPException(status_code=404, detail="Band not found")
+    if blacklist and band.mbid:
+        entry = db.get(BandBlacklist, band.mbid)
+        if entry is None:
+            db.add(BandBlacklist(mbid=band.mbid, reason=reason))
+        elif reason is not None:
+            entry.reason = reason
     db.delete(band)
     db.commit()
     return "band deleted"

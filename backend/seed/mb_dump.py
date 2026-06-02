@@ -27,7 +27,7 @@ from sqlalchemy.orm import Session
 
 from app.database import SessionLocal
 from app.genres import CURATED_GENRES, slug_for_tag
-from app.models import Album, Band, BandGenre, BandMember, Genre, Member
+from app.models import Album, Band, BandBlacklist, BandGenre, BandMember, Genre, Member
 from app.settings import settings
 from seed.outliers import summarize_tags
 
@@ -39,10 +39,11 @@ MEMBER_OF_BAND_GID = "5be4c609-9afa-4ea0-910b-12ffb71e3821"
 # MBIDs are cast to text on the way out: psycopg2 returns MB's `uuid` columns
 # as `UUID` objects, but the app schema stores them as `String(36)`. Without
 # this cast the existing-row lookups (`existing_bands.get(row["mbid"])`)
-# miss on re-runs and the seed tries to re-insert every row.
+# miss on re-runs and the seed tries to re-insert every row. `CAST(... AS text)`
+# is portable across both Postgres and the SQLite fixture the tests use.
 _ARTIST_SQL = text(
     """
-    SELECT a.id AS artist_id, a.gid::text AS mbid, a.name AS name,
+    SELECT a.id AS artist_id, CAST(a.gid AS text) AS mbid, a.name AS name,
            ar.name AS area_name, a.ended AS ended,
            a.begin_date_year AS begin_year, a.end_date_year AS end_year
     FROM artist a
@@ -55,7 +56,7 @@ _ARTIST_SQL = text(
 
 _RELEASE_GROUP_SQL = text(
     """
-    SELECT acn.artist AS artist_id, rg.gid::text AS rg_mbid, rg.name AS rg_name,
+    SELECT acn.artist AS artist_id, CAST(rg.gid AS text) AS rg_mbid, rg.name AS rg_name,
            rgpt.name AS primary_type, rgm.first_release_date_year AS year
     FROM release_group rg
     JOIN artist_credit_name acn ON acn.artist_credit = rg.artist_credit
@@ -67,7 +68,7 @@ _RELEASE_GROUP_SQL = text(
 
 _MEMBER_SQL = text(
     """
-    SELECT laa.entity1 AS band_id, m.gid::text AS member_mbid, m.name AS member_name,
+    SELECT laa.entity1 AS band_id, CAST(m.gid AS text) AS member_mbid, m.name AS member_name,
            MIN(lat.name) AS role
     FROM l_artist_artist laa
     JOIN link l ON l.id = laa.link
@@ -95,6 +96,7 @@ _ARTIST_TAGS_SQL = text(
 class SeedStats:
     bands_inserted: int = 0
     bands_updated: int = 0
+    bands_blacklisted: int = 0
     albums_inserted: int = 0
     albums_updated: int = 0
     members_inserted: int = 0
@@ -108,6 +110,7 @@ class SeedStats:
         return {
             "bands_inserted": self.bands_inserted,
             "bands_updated": self.bands_updated,
+            "bands_blacklisted": self.bands_blacklisted,
             "albums_inserted": self.albums_inserted,
             "albums_updated": self.albums_updated,
             "members_inserted": self.members_inserted,
@@ -152,6 +155,18 @@ def run_seed(mb_engine: Engine, app_session: Session, *, tag: str | None = None)
             logger.warning("No artists found for tag %r", tag)
             app_session.commit()
             return stats
+
+        # Skip MBIDs a curator has previously removed; otherwise every MB dump
+        # re-runs would silently resurrect the off-genre bands they cleaned out.
+        blacklist = {b.mbid for b in app_session.query(BandBlacklist)}
+        if blacklist:
+            kept: list = []
+            for row in artist_rows:
+                if row["mbid"] in blacklist:
+                    stats.bands_blacklisted += 1
+                else:
+                    kept.append(row)
+            artist_rows = kept
 
         # --- Bands -------------------------------------------------------
         existing_bands = {b.mbid: b for b in app_session.query(Band).filter(Band.mbid.isnot(None))}

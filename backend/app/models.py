@@ -175,6 +175,20 @@ class BandGenre(TimestampMixin, Base):
         return self.genre.name
 
 
+class BandBlacklist(TimestampMixin, Base):
+    """MBIDs that must NOT be re-seeded by `seed.mb_dump`.
+
+    Populated when a curator deletes an off-genre band via the API; the seeder
+    consults this table before upserting artist rows so deletions stick across
+    future runs of the MB dump.
+    """
+
+    __tablename__ = "band_blacklist"
+
+    mbid: so.Mapped[str] = so.mapped_column(sa.String(36), primary_key=True)
+    reason: so.Mapped[str | None] = so.mapped_column(sa.Text())
+
+
 class BandMember(TimestampMixin, Base):
     """Association between a Band and a Member, carrying the member's role."""
 

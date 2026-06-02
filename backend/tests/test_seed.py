@@ -11,7 +11,7 @@ from sqlalchemy.pool import StaticPool
 
 from app.database import Base
 from app.genres import CURATED_GENRES
-from app.models import Album, Band, BandGenre, BandMember, Genre, Member
+from app.models import Album, Band, BandBlacklist, BandGenre, BandMember, Genre, Member
 from seed import band_art, cover_art
 from seed.mb_dump import MEMBER_OF_BAND_GID, run_seed
 
@@ -179,6 +179,28 @@ def test_seed_subgenres_idempotent(mb_engine, app_session):
     assert app_session.query(BandGenre).count() == 2
     assert stats2.genres_linked == 0
     assert stats2.genre_links_updated == 0
+
+
+def test_seed_skips_blacklisted_mbids(mb_engine, app_session):
+    # First pass seeds all three bands.
+    run_seed(mb_engine, app_session, tag="hardcore punk")
+    assert app_session.query(Band).count() == 3
+
+    # Curator removes GauZe and blacklists its MBID — the same path the
+    # delete endpoint takes.
+    gauze = app_session.query(Band).filter_by(name="GauZe").one()
+    app_session.add(BandBlacklist(mbid=gauze.mbid, reason="not hardcore"))
+    app_session.delete(gauze)
+    app_session.commit()
+
+    stats = run_seed(mb_engine, app_session, tag="hardcore punk")
+
+    names = {b.name for b in app_session.query(Band).all()}
+    assert "GauZe" not in names
+    assert names == {"Minor Threat", "Discharge"}
+    assert stats.bands_blacklisted == 1
+    # Albums that belonged only to the skipped artist aren't resurrected either.
+    assert app_session.query(Album).filter_by(release_group_mbid="rg-gauze").count() == 0
 
 
 def test_cover_art_sets_only_found_art(mb_engine, app_session):

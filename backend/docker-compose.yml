@@ -37,6 +37,11 @@ services:
       DATABASE_URL: postgresql+psycopg2://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
     ports:
       - "8000:5000"
+    # Bind-mount just the blacklist file (not all of seed/) so curator decisions
+    # made via DELETE /band/{id}/delete land on the host and can be git-committed.
+    # File-level mount avoids shadowing the image's seed/__pycache__ and .pyc files.
+    volumes:
+      - ./seed/blacklist.json:/app/seed/blacklist.json
     networks:
       - app-network
 

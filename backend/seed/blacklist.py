@@ -24,8 +24,6 @@ from __future__ import annotations
 
 import json
 import logging
-import os
-import tempfile
 from pathlib import Path
 
 from sqlalchemy.orm import Session
@@ -90,12 +88,19 @@ def append_entry(mbid: str, reason: str | None, path: Path | None = None) -> str
     - `"updated"`   — mbid was present with a different reason; reason replaced.
     - `"unchanged"` — mbid was present with the same reason; file untouched.
 
-    Writes are atomic (temp file + rename) so a crash mid-write can't leave
-    the JSON half-flushed. Callers should treat this as a best-effort hook
-    from the API layer — failures to write the file (read-only FS, etc.) bubble
-    up and should be handled by the caller, since the DB row is the runtime
-    authority and a missing file write is a "commit me later" reminder, not a
-    correctness issue.
+    Writes happen in place (truncate + rewrite) so the file's inode is
+    preserved. This matters when blacklist.json is bind-mounted into the API
+    container — Docker file-level bind-mounts pin the host inode at container
+    start, so an atomic tempfile+rename (which swaps in a new inode) would
+    silently drift the container's view from the host. The trade-off is no
+    crash-atomicity: a crash mid-write could leave the JSON truncated, but the
+    file is small and human-curated, so `git restore` is the recovery path.
+
+    Callers should treat this as a best-effort hook from the API layer —
+    failures to write the file (read-only FS, etc.) bubble up and should be
+    handled by the caller, since the DB row is the runtime authority and a
+    missing file write is a "commit me later" reminder, not a correctness
+    issue.
     """
     if path is None:
         path = BLACKLIST_PATH
@@ -115,18 +120,7 @@ def append_entry(mbid: str, reason: str | None, path: Path | None = None) -> str
         entries.append(new)
 
     path.parent.mkdir(parents=True, exist_ok=True)
-    fd, tmp_path = tempfile.mkstemp(
-        prefix=".blacklist.", suffix=".json.tmp", dir=str(path.parent)
-    )
-    try:
-        with os.fdopen(fd, "w") as f:
-            json.dump(entries, f, indent=2)
-            f.write("\n")
-        os.replace(tmp_path, path)
-    except Exception:
-        try:
-            os.unlink(tmp_path)
-        except OSError:
-            pass
-        raise
+    with path.open("w") as f:
+        json.dump(entries, f, indent=2)
+        f.write("\n")
     return action

@@ -1,3 +1,4 @@
+import logging
 import string
 from typing import Literal
 
@@ -10,8 +11,10 @@ from app.database import get_db
 from app.models import Band, BandBlacklist, BandGenre, BandMember, Genre
 from app.services import musicbrainz
 from app.settings import settings
+from seed.blacklist import append_entry as append_blacklist_entry
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
 # Weights for the similar-bands score. No real similarity model exists yet, so
 # we combine the locally-stored signals; higher = stronger pull. Tune freely —
@@ -266,11 +269,10 @@ def delete(
         True,
         description=(
             "If true (default), the band's MBID is recorded in band_blacklist "
-            "so seed.mb_dump skips it on future runs. To make the decision "
-            "durable across DBs / teammates / prod, also add the MBID to "
-            "seed/blacklist.json and commit (the table is per-DB; the JSON "
-            "file is the source of truth). Set false to allow a later re-seed "
-            "to bring the band back (e.g. for misclick recovery)."
+            "AND appended to seed/blacklist.json so seed.mb_dump skips it on "
+            "future runs and the decision is portable across DBs / teammates "
+            "/ prod. Commit the JSON diff after deleting. Set false to allow "
+            "a later re-seed to bring the band back (e.g. misclick recovery)."
         ),
     ),
     reason: str | None = Query(
@@ -283,12 +285,25 @@ def delete(
     band = db.get(Band, id)
     if band is None:
         raise HTTPException(status_code=404, detail="Band not found")
+    mbid_to_append = None
     if blacklist and band.mbid:
         entry = db.get(BandBlacklist, band.mbid)
         if entry is None:
             db.add(BandBlacklist(mbid=band.mbid, reason=reason))
         elif reason is not None:
             entry.reason = reason
+        mbid_to_append = band.mbid
     db.delete(band)
     db.commit()
+    # Mirror the decision into the checked-in JSON so it survives DB resets and
+    # is portable to other environments. The DB row is the authority — failing
+    # to update the file is a "you forgot to commit" reminder, not a request
+    # failure — so we log and move on.
+    if mbid_to_append is not None:
+        try:
+            append_blacklist_entry(mbid_to_append, reason)
+        except OSError as e:
+            logger.warning(
+                "blacklist.json write failed for mbid=%s: %s", mbid_to_append, e
+            )
     return "band deleted"

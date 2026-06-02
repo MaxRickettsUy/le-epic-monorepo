@@ -49,6 +49,17 @@ def client():
     Base.metadata.drop_all(bind=engine)
 
 
+@pytest.fixture(autouse=True)
+def _isolate_blacklist_file(tmp_path, monkeypatch):
+    # The delete endpoint and seed.mb_dump both consult seed/blacklist.json.
+    # Redirect every test to a per-test tmp path by default so nothing here
+    # mutates the checked-in file; tests that want to exercise file behavior
+    # override it locally with their own monkeypatch.setattr.
+    import seed.blacklist as bl
+
+    monkeypatch.setattr(bl, "BLACKLIST_PATH", tmp_path / "no-real-blacklist.json")
+
+
 @pytest.fixture()
 def db(client):
     # A session on the same in-memory engine for tests that need to seed rows

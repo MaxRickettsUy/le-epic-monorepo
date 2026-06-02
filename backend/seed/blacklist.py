@@ -12,16 +12,20 @@ against), but the JSON guarantees the table is at least as broad as the
 checked-in decisions whenever a re-seed happens.
 
 Workflow:
-    1. Curator calls DELETE /band/{id}/delete (writes to band_blacklist).
-    2. Curator copies that MBID + reason into seed/blacklist.json and commits.
+    1. Curator calls DELETE /band/{id}/delete. The endpoint writes the row to
+       band_blacklist AND appends to seed/blacklist.json (via `append_entry`).
+    2. Curator `git commit`s the file diff to make the decision durable for
+       teammates / fresh DBs / prod.
     3. Next `python -m seed.mb_dump` re-applies the JSON; deletions stay sticky
-       across re-seeds and propagate to teammates / prod.
+       across re-seeds.
 """
 
 from __future__ import annotations
 
 import json
 import logging
+import os
+import tempfile
 from pathlib import Path
 
 from sqlalchemy.orm import Session
@@ -77,3 +81,52 @@ def apply_blacklist(session: Session, path: Path | None = None) -> dict:
     if inserted or updated:
         logger.info("blacklist applied: %s", stats)
     return stats
+
+
+def append_entry(mbid: str, reason: str | None, path: Path | None = None) -> str:
+    """Add (or refresh) one entry in `blacklist.json`. Returns the action taken.
+
+    - `"added"`     — mbid was new; appended at the end.
+    - `"updated"`   — mbid was present with a different reason; reason replaced.
+    - `"unchanged"` — mbid was present with the same reason; file untouched.
+
+    Writes are atomic (temp file + rename) so a crash mid-write can't leave
+    the JSON half-flushed. Callers should treat this as a best-effort hook
+    from the API layer — failures to write the file (read-only FS, etc.) bubble
+    up and should be handled by the caller, since the DB row is the runtime
+    authority and a missing file write is a "commit me later" reminder, not a
+    correctness issue.
+    """
+    if path is None:
+        path = BLACKLIST_PATH
+    entries = load_blacklist(path)
+    action = "added"
+    for entry in entries:
+        if entry["mbid"] == mbid:
+            if entry.get("reason") == reason:
+                return "unchanged"
+            entry["reason"] = reason
+            action = "updated"
+            break
+    else:
+        new = {"mbid": mbid}
+        if reason is not None:
+            new["reason"] = reason
+        entries.append(new)
+
+    path.parent.mkdir(parents=True, exist_ok=True)
+    fd, tmp_path = tempfile.mkstemp(
+        prefix=".blacklist.", suffix=".json.tmp", dir=str(path.parent)
+    )
+    try:
+        with os.fdopen(fd, "w") as f:
+            json.dump(entries, f, indent=2)
+            f.write("\n")
+        os.replace(tmp_path, path)
+    except Exception:
+        try:
+            os.unlink(tmp_path)
+        except OSError:
+            pass
+        raise
+    return action

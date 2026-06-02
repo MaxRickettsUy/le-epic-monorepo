@@ -78,9 +78,7 @@ def test_delete_blacklists_mbid_by_default(client, db):
     from app.models import BandBlacklist
 
     band_id = _create_with_mbid(client, db, "mt-gid")
-    res = client.request(
-        "DELETE", f"/band/{band_id}/delete", params={"reason": "off-genre"}
-    )
+    res = client.request("DELETE", f"/band/{band_id}/delete", params={"reason": "off-genre"})
     assert res.status_code == 200
 
     entry = db.get(BandBlacklist, "mt-gid")
@@ -102,10 +100,33 @@ def test_delete_band_without_mbid_does_not_blacklist(client, db):
 
     # Default BAND fixture has no mbid; nothing to blacklist by.
     band_id = _create(client).json()["id"]
-    assert (
-        client.request("DELETE", f"/band/{band_id}/delete").status_code == 200
-    )
+    assert client.request("DELETE", f"/band/{band_id}/delete").status_code == 200
     assert db.query(BandBlacklist).count() == 0
+
+
+def test_delete_appends_to_blacklist_json(client, db, tmp_path, monkeypatch):
+    import json as _json
+
+    import seed.blacklist as bl
+
+    path = tmp_path / "blacklist.json"
+    monkeypatch.setattr(bl, "BLACKLIST_PATH", path)
+
+    band_id = _create_with_mbid(client, db, "mt-gid")
+    res = client.request("DELETE", f"/band/{band_id}/delete", params={"reason": "off-genre"})
+    assert res.status_code == 200
+    assert _json.loads(path.read_text()) == [{"mbid": "mt-gid", "reason": "off-genre"}]
+
+
+def test_delete_blacklist_false_does_not_touch_json(client, db, tmp_path, monkeypatch):
+    import seed.blacklist as bl
+
+    path = tmp_path / "blacklist.json"
+    monkeypatch.setattr(bl, "BLACKLIST_PATH", path)
+
+    band_id = _create_with_mbid(client, db, "mt-gid")
+    client.request("DELETE", f"/band/{band_id}/delete?blacklist=false")
+    assert not path.exists()
 
 
 def test_similar_404(client):

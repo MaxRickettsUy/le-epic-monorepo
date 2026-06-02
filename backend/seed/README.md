@@ -93,9 +93,12 @@ checked-in record curator decisions must land in to be durable:
 which upserts every JSON entry into `band_blacklist` *before* the artist rows
 are filtered. So:
 
-- Delete-endpoint workflow: API call updates the table on your DB, then
-  copy the MBID + reason into `blacklist.json` and commit. Next teammate /
-  next environment / next DB reset picks it up automatically.
+- **Delete endpoint also writes the file.** `DELETE /band/{id}/delete`
+  appends to `blacklist.json` (via `seed.blacklist.append_entry`, atomic
+  temp-file rename) in addition to writing the DB row. After deleting, just
+  `git add seed/blacklist.json && git commit` — no separate copy-paste step.
+  If the JSON write fails (e.g. read-only FS), the request still succeeds and
+  the failure is logged.
 - `apply_blacklist` is additive only — it never removes rows the file no
   longer mentions, so a curator can experiment with delete-only entries
   without losing them. To un-blacklist for everyone, delete the JSON entry

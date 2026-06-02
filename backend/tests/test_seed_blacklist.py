@@ -9,7 +9,7 @@ from sqlalchemy.pool import StaticPool
 
 from app.database import Base
 from app.models import BandBlacklist
-from seed.blacklist import apply_blacklist, load_blacklist
+from seed.blacklist import append_entry, apply_blacklist, load_blacklist
 
 
 @pytest.fixture()
@@ -99,3 +99,40 @@ def test_apply_uses_default_path_when_omitted(app_session):
     # Smoke test: the default path exists and parses (even if empty).
     stats = apply_blacklist(app_session)
     assert "total_in_file" in stats
+
+
+def test_append_creates_file_with_new_entry(tmp_path):
+    path = tmp_path / "blacklist.json"
+    assert append_entry("abc", "off-genre", path) == "added"
+
+    assert json.loads(path.read_text()) == [{"mbid": "abc", "reason": "off-genre"}]
+
+
+def test_append_omits_reason_when_none(tmp_path):
+    path = tmp_path / "blacklist.json"
+    append_entry("abc", None, path)
+    # Entries with no reason serialize as just {mbid}, matching the curated style.
+    assert json.loads(path.read_text()) == [{"mbid": "abc"}]
+
+
+def test_append_updates_existing_reason(tmp_path):
+    path = _write(tmp_path, [{"mbid": "abc", "reason": "first"}])
+    assert append_entry("abc", "second", path) == "updated"
+    assert json.loads(path.read_text()) == [{"mbid": "abc", "reason": "second"}]
+
+
+def test_append_is_noop_when_reason_unchanged(tmp_path):
+    path = _write(tmp_path, [{"mbid": "abc", "reason": "same"}])
+    mtime_before = path.stat().st_mtime_ns
+    assert append_entry("abc", "same", path) == "unchanged"
+    # File untouched: no rewrite, mtime stays identical.
+    assert path.stat().st_mtime_ns == mtime_before
+
+
+def test_append_preserves_existing_entries(tmp_path):
+    path = _write(tmp_path, [{"mbid": "a", "reason": "one"}])
+    append_entry("b", "two", path)
+    assert json.loads(path.read_text()) == [
+        {"mbid": "a", "reason": "one"},
+        {"mbid": "b", "reason": "two"},
+    ]

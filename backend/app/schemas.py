@@ -120,6 +120,9 @@ class BandBase(ORMModel):
     begin_year: int | None = None
     end_year: int | None = None
     inclusion_reason: str | None = None
+    seed_votes: int | None = None
+    total_tag_votes: int | None = None
+    seed_share: float | None = None
     genres: list[GenreOut] = []
 
 

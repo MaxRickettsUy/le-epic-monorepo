@@ -2,6 +2,7 @@ import { z } from "zod";
 import type {
   Band,
   BandList,
+  BandListItem,
   BandStatus,
   CountryCount,
   Genre,
@@ -9,6 +10,7 @@ import type {
   SimilarBand,
 } from "@/lib/types";
 import {
+  bandListItemSchema,
   bandListSchema,
   bandSchema,
   countryCountSchema,
@@ -64,6 +66,23 @@ export function listGenres(): Promise<Genre[]> {
 /** Distinct band countries with counts (`GET /band/countries`). */
 export function listCountries(): Promise<CountryCount[]> {
   return apiFetch(`/band/countries`, z.array(countryCountSchema), { next: { revalidate: 60 } });
+}
+
+/**
+ * Top candidates for off-genre review (`GET /band/needs-review`), lowest
+ * seed-share first. Pass `includeResolved` to also surface bands a curator
+ * has already addressed (i.e. with an `inclusion_reason` set).
+ */
+export function listNeedsReview(
+  options: { includeResolved?: boolean; limit?: number } = {},
+): Promise<BandListItem[]> {
+  const params = new URLSearchParams();
+  if (options.includeResolved) params.set("include_resolved", "true");
+  if (options.limit != null) params.set("limit", String(options.limit));
+  const qs = params.toString();
+  return apiFetch(`/band/needs-review${qs ? `?${qs}` : ""}`, z.array(bandListItemSchema), {
+    cache: "no-store",
+  });
 }
 
 /** Band detail (`GET /band/{id}`); `null` when the band does not exist. */

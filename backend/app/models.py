@@ -39,6 +39,13 @@ class Band(TimestampMixin, Base):
     # being adjacent / off-genre (e.g. "included for split with X"). Null for
     # the vast majority that need no justification.
     inclusion_reason: so.Mapped[str | None] = so.mapped_column(sa.Text())
+    # Outlier-audit signals, populated by seed.mb_dump from the MB tag votes:
+    # what share of this band's total MB tag votes is the seed tag itself.
+    # Low share = MB users tag it as something else more strongly. Nullable
+    # because nothing populates these before the first seed run.
+    seed_votes: so.Mapped[int | None] = so.mapped_column(sa.Integer())
+    total_tag_votes: so.Mapped[int | None] = so.mapped_column(sa.Integer())
+    seed_share: so.Mapped[float | None] = so.mapped_column(sa.Float())
 
     # Attribute kept as `releases` so the API/JSON shape is unchanged even
     # though the underlying model/table is now Album.

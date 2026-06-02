@@ -78,6 +78,14 @@ const bandBaseSchema = z.object({
    * needed — the default for the vast majority of bands.
    */
   inclusion_reason: z.string().nullish(),
+  /**
+   * Outlier-audit signals from the seed run (see backend `seed.mb_dump`).
+   * `seed_share` = `seed_votes / total_tag_votes`; null when there are no
+   * tag votes at all. Drives the `/admin/needs-review` ranking.
+   */
+  seed_votes: z.number().nullish(),
+  total_tag_votes: z.number().nullish(),
+  seed_share: z.number().nullish(),
   /** Curated sub-genres, strongest-voted first. */
   genres: z.array(genreSchema),
 });

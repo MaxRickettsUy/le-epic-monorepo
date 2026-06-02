@@ -29,6 +29,7 @@ from app.database import SessionLocal
 from app.genres import CURATED_GENRES, slug_for_tag
 from app.models import Album, Band, BandGenre, BandMember, Genre, Member
 from app.settings import settings
+from seed.outliers import summarize_tags
 
 logger = logging.getLogger("seed.mb_dump")
 
@@ -239,6 +240,15 @@ def run_seed(mb_engine: Engine, app_session: Session, *, tag: str | None = None)
         # Map each artist tag onto a curated slug, dropping anything not curated
         # (including the broad scope tag itself), and link it to the band.
         tag_rows = mb.execute(_ARTIST_TAGS_SQL, {"artist_ids": mb_artist_ids}).mappings().all()
+        # Group tags per MB artist once; we use the grouped form both to link
+        # curated genres below and to compute the per-band outlier-audit
+        # signals (seed_share et al.) at the bottom of this function.
+        tags_by_artist: dict[int, list[tuple[str, int]]] = {}
+        for row in tag_rows:
+            tags_by_artist.setdefault(row["artist_id"], []).append(
+                (row["tag_name"], int(row["votes"] or 0))
+            )
+
         existing_genre_links = {
             (bg.band_id, bg.genre_id): bg for bg in app_session.query(BandGenre)
         }
@@ -262,6 +272,18 @@ def run_seed(mb_engine: Engine, app_session: Session, *, tag: str | None = None)
                 # keep the strongest signal.
                 link.vote_count = votes
                 stats.genre_links_updated += 1
+
+        # --- Outlier audit signals --------------------------------------
+        # Persist (seed_votes, total_tag_votes, seed_share) onto each band
+        # so /band/needs-review can rank candidate outliers without touching
+        # the MB dump. Bands with no tag rows get zeros / a null share.
+        for mb_artist_id, band in band_by_mb_id.items():
+            seed_votes, total, _other = summarize_tags(
+                tags_by_artist.get(mb_artist_id, []), tag
+            )
+            band.seed_votes = seed_votes
+            band.total_tag_votes = total
+            band.seed_share = (seed_votes / total) if total else None
 
     app_session.commit()
     return stats

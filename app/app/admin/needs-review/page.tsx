@@ -1,0 +1,115 @@
+import Link from "next/link";
+import { listNeedsReview } from "@/lib/api";
+import { Header } from "@/components/ui/header";
+import { Badge } from "@/components/ui/badge";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { GenreBadges } from "@/components/GenreBadges";
+
+export const metadata = { title: "Needs review" };
+// Always fresh: this view is a curation tool, not a public catalogue page.
+export const fetchCache = "force-no-store";
+
+interface PageProps {
+  searchParams: Promise<{ include_resolved?: string }>;
+}
+
+function formatShare(share: number | null | undefined, total: number | null | undefined): string {
+  if (total == null || total === 0) return "no MB tags";
+  if (share == null) return "—";
+  return `${Math.round(share * 100)}%`;
+}
+
+export default async function NeedsReviewPage({ searchParams }: PageProps) {
+  const { include_resolved } = await searchParams;
+  const includeResolved = include_resolved === "true";
+  const bands = await listNeedsReview({ includeResolved });
+
+  return (
+    <main className="flex flex-col pb-[1rem]">
+      <Header />
+      <div className="flex flex-col gap-4 p-4">
+        <div className="flex flex-col gap-1">
+          <h1 className="text-3xl font-bold">Needs review</h1>
+          <p className="text-sm text-muted-foreground">
+            Top 50 catalogue bands ranked by how weakly their MusicBrainz tags back the
+            &ldquo;hardcore punk&rdquo; seed tag. Lowest seed-share first. Bands with no MB tag
+            votes at all sink to the bottom — there&rsquo;s no signal to argue with.
+          </p>
+        </div>
+
+        <div className="flex items-center gap-3 text-sm">
+          <Link
+            href={includeResolved ? "?" : "?include_resolved=true"}
+            className="underline hover:no-underline"
+          >
+            {includeResolved ? "Hide resolved bands" : "Show resolved bands too"}
+          </Link>
+          <span className="text-muted-foreground">{bands.length} shown</span>
+        </div>
+
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Band</TableHead>
+              <TableHead>Country</TableHead>
+              <TableHead>Sub-genres</TableHead>
+              <TableHead>Seed share</TableHead>
+              <TableHead>Votes</TableHead>
+              <TableHead>Reviewed?</TableHead>
+              <TableHead className="text-right">Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {bands.map((band) => (
+              <TableRow key={band.id}>
+                <TableCell className="font-medium">
+                  <Link href={`/band/${band.id}`} className="hover:underline">
+                    {band.name}
+                  </Link>
+                </TableCell>
+                <TableCell className="text-muted-foreground">{band.country || "—"}</TableCell>
+                <TableCell>
+                  {band.genres.length > 0 ? (
+                    <GenreBadges genres={band.genres} className="flex flex-wrap gap-1" />
+                  ) : (
+                    <span className="text-muted-foreground">—</span>
+                  )}
+                </TableCell>
+                <TableCell>{formatShare(band.seed_share, band.total_tag_votes)}</TableCell>
+                <TableCell className="text-muted-foreground">
+                  {band.seed_votes ?? 0}/{band.total_tag_votes ?? 0}
+                </TableCell>
+                <TableCell>
+                  {band.inclusion_reason ? (
+                    <Badge variant="secondary">Reviewed</Badge>
+                  ) : (
+                    <span className="text-muted-foreground">—</span>
+                  )}
+                </TableCell>
+                <TableCell className="text-right">
+                  <Link href={`/edit/band/${band.id}`} className="underline hover:no-underline">
+                    Edit
+                  </Link>
+                </TableCell>
+              </TableRow>
+            ))}
+            {bands.length === 0 && (
+              <TableRow>
+                <TableCell colSpan={7} className="text-center text-muted-foreground">
+                  Nothing to review.
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+      </div>
+    </main>
+  );
+}

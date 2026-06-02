@@ -35,6 +35,7 @@ the frontend depends on. The authoritative definitions live in:
 | --------------------------------- | ------------ | ----------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `GET /band/`                      | —            | `BandList`                          | `?page=` (1-based), `bands_per_page` from backend settings. `?sort=` is `name` (default) or `recent` (created_at desc). Optional facets, combinable: `?genre=<slug>`, `?country=<exact>`, `?letter=<A–Z or #>` (`#` = name not starting A–Z; other values → `422`). The pagination total reflects the active facets. |
 | `GET /band/countries`             | —            | `CountryCount[]`                    | Distinct band countries with counts, desc by count then name. Free-text column (no normalization). Used to populate the country browse facet.                                                                                                                                                                        |
+| `GET /band/needs-review`          | —            | `BandListItem[]`                    | Top candidates for off-genre review, lowest `seed_share` first (bands with no MB tag votes sink to the bottom). `?include_resolved=true` to also include bands with an `inclusion_reason` set; `?limit=` (default 50, max 200). Backs `/admin/needs-review`.                                                         |
 | `GET /band/{id}`                  | —            | `BandDetail`                        | `404` → `null`. Eager-loads `releases` + `members` + `genres`.                                                                                                                                                                                                                                                       |
 | `GET /band/{id}/similar`          | —            | `SimilarBand[]`                     | Weighted score over shared members, `location`, shared genres, `label`, `country` (see `band/routes.py` `SIMILARITY_WEIGHTS`). Self excluded, score-desc then name, capped at `bands_per_page`. `404` if missing.                                                                                                    |
 | `POST /band/new`                  | `BandCreate` | `{ message: string, id: number }`   |                                                                                                                                                                                                                                                                                                                      |
@@ -117,6 +118,9 @@ use `.nullish()`, accepting `null` and `undefined`.
   begin_year?: number;  // year formed (from MB artist.begin_date_year); year-only
   end_year?: number;    // year disbanded (from MB artist.end_date_year); null if active/unknown
   inclusion_reason?: string;  // curator note for off-genre outliers; null/absent for the typical band
+  seed_votes?: number;        // MB votes for the seed tag ("hardcore punk")
+  total_tag_votes?: number;   // MB votes across all of this band's tags
+  seed_share?: number;        // seed_votes / total_tag_votes; null when total is 0
   genres: Genre[];       // curated sub-genres, strongest-voted first; [] if none
 }
 ```

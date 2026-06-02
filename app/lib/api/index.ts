@@ -3,6 +3,7 @@ export {
   listBands,
   listGenres,
   listCountries,
+  listNeedsReview,
   getBand,
   getSimilarBands,
   createBand,

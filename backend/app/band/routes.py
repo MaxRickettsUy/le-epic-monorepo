@@ -87,6 +87,36 @@ def get_all(
     )
 
 
+@router.get("/needs-review", response_model=list[schemas.BandListItem])
+def needs_review(
+    include_resolved: bool = Query(
+        False,
+        description="If true, include bands that already have an inclusion_reason set.",
+    ),
+    limit: int = Query(50, ge=1, le=200),
+    db: Session = Depends(get_db),
+):
+    """Top candidates for off-genre review, lowest seed-share first.
+
+    Ranks by `seed_share` ascending (lowest = MB users tag it as something
+    else more strongly than the seed tag). Bands with `total_tag_votes == 0`
+    sink to the bottom — no MB signal to argue with. By default hides bands
+    a curator has already addressed (i.e. `inclusion_reason` is set).
+    """
+    stmt = sa.select(Band).options(selectinload(Band.genres).selectinload(BandGenre.genre))
+    if not include_resolved:
+        stmt = stmt.where(Band.inclusion_reason.is_(None))
+    stmt = stmt.order_by(
+        # Nulls last: bands with no audit data come after those we can rank.
+        sa.case((Band.seed_share.is_(None), 1), else_=0).asc(),
+        Band.seed_share.asc(),
+        Band.total_tag_votes.desc().nullslast(),
+        Band.name.asc(),
+    ).limit(limit)
+    bands = db.scalars(stmt).all()
+    return [schemas.BandListItem.model_validate(b) for b in bands]
+
+
 @router.get("/countries", response_model=list[schemas.CountryCount])
 def list_countries(db: Session = Depends(get_db)):
     """Distinct band countries with counts, for the browse facet. Free-text

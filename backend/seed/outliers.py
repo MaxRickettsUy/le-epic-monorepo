@@ -61,13 +61,30 @@ class OutlierRow:
         return (self.seed_votes / self.total_votes) if self.total_votes else 0.0
 
 
+def summarize_tags(
+    tags: list[tuple[str, int]], seed_tag: str
+) -> tuple[int, int, list[tuple[str, int]]]:
+    """Reduce a band's MB tag votes into (seed_votes, total_votes, top_other_tags).
+
+    `top_other_tags` is the five strongest non-seed tags, descending by votes.
+    Shared with `seed.mb_dump` so the audit columns and the CLI agree.
+    """
+    seed_key = seed_tag.strip().lower()
+    seed_votes = sum(v for n, v in tags if n.strip().lower() == seed_key)
+    total = sum(v for _, v in tags)
+    other = sorted(
+        ((n, v) for n, v in tags if n.strip().lower() != seed_key),
+        key=lambda x: -x[1],
+    )[:5]
+    return seed_votes, total, other
+
+
 def collect(app_session: Session, mb_engine, seed_tag: str) -> list[OutlierRow]:
     bands = app_session.query(Band).filter(Band.mbid.isnot(None)).all()
     by_mbid: dict[str, Band] = {b.mbid: b for b in bands if b.mbid}
     if not by_mbid:
         return []
 
-    seed_key = seed_tag.strip().lower()
     per_band_tags: dict[str, list[tuple[str, int]]] = {mbid: [] for mbid in by_mbid}
 
     with mb_engine.connect() as mb:
@@ -77,13 +94,7 @@ def collect(app_session: Session, mb_engine, seed_tag: str) -> list[OutlierRow]:
 
     out: list[OutlierRow] = []
     for mbid, band in by_mbid.items():
-        tags = per_band_tags.get(mbid, [])
-        seed_votes = sum(v for n, v in tags if n.strip().lower() == seed_key)
-        total = sum(v for _, v in tags)
-        other = sorted(
-            ((n, v) for n, v in tags if n.strip().lower() != seed_key),
-            key=lambda x: -x[1],
-        )[:5]
+        seed_votes, total, other = summarize_tags(per_band_tags.get(mbid, []), seed_tag)
         out.append(
             OutlierRow(
                 band_id=band.id,

@@ -18,6 +18,7 @@ export const TopSection = (props: {
   genres?: Genre[];
   beginYear?: number | null;
   endYear?: number | null;
+  inclusionReason?: string | null;
 }) => {
   const active = yearsActive(props.beginYear, props.endYear);
   return (
@@ -52,6 +53,12 @@ export const TopSection = (props: {
             {active && (
               <p className="mt-2 text-sm text-muted-foreground">
                 {active.endsWith("present") ? "Active" : "Years active"} {active}
+              </p>
+            )}
+            {props.inclusionReason && (
+              <p className="mt-3 border-l-2 border-muted-foreground/40 pl-3 text-sm italic text-muted-foreground">
+                <span className="font-semibold not-italic">Why included: </span>
+                {props.inclusionReason}
               </p>
             )}
           </CardContent>

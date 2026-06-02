@@ -119,6 +119,7 @@ class BandBase(ORMModel):
     mbid: str | None = None
     begin_year: int | None = None
     end_year: int | None = None
+    inclusion_reason: str | None = None
     genres: list[GenreOut] = []
 
 
@@ -171,6 +172,7 @@ class BandCreate(BaseInput):
     location: str
     country: str
     label: str
+    inclusion_reason: str | None = None
 
 
 # --- Search ----------------------------------------------------------------

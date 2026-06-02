@@ -41,6 +41,7 @@ export const BandForm = ({
       label: defaultValues?.label ?? "",
       band_picture: defaultValues?.band_picture ?? null,
       logo: defaultValues?.logo ?? null,
+      inclusion_reason: defaultValues?.inclusion_reason ?? null,
     } as BandFormValues,
     validators: { onChange: bandFormSchema },
     onSubmit: async ({ value }) => {
@@ -149,6 +150,24 @@ export const BandForm = ({
                   onChange={(e) => field.handleChange(e.target.value || null)}
                   type="url"
                   placeholder="https://…"
+                />
+                <FieldError meta={field.state.meta} show={form.state.submissionAttempts > 0} />
+              </div>
+            )}
+          </form.Field>
+
+          <form.Field name="inclusion_reason">
+            {(field) => (
+              <div className="flex flex-col gap-[0.5rem]">
+                <Label htmlFor={field.name}>Inclusion reason</Label>
+                <Input
+                  id={field.name}
+                  name={field.name}
+                  value={field.state.value ?? ""}
+                  onBlur={field.handleBlur}
+                  onChange={(e) => field.handleChange(e.target.value || null)}
+                  type="text"
+                  placeholder='e.g. "Included for split LP with Minor Threat"'
                 />
                 <FieldError meta={field.state.meta} show={form.state.submissionAttempts > 0} />
               </div>

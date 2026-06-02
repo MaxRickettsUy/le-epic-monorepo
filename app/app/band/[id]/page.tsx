@@ -46,6 +46,7 @@ export default async function BandPage({ params }: PageProps) {
           genres={band.genres}
           beginYear={band.begin_year}
           endYear={band.end_year}
+          inclusionReason={band.inclusion_reason}
         />
         <Tabs defaultValue="discography" className="w-full p-4">
           <TabsList>

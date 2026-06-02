@@ -116,6 +116,7 @@ use `.nullish()`, accepting `null` and `undefined`.
   mbid?: string;
   begin_year?: number;  // year formed (from MB artist.begin_date_year); year-only
   end_year?: number;    // year disbanded (from MB artist.end_date_year); null if active/unknown
+  inclusion_reason?: string;  // curator note for off-genre outliers; null/absent for the typical band
   genres: Genre[];       // curated sub-genres, strongest-voted first; [] if none
 }
 ```
@@ -278,6 +279,7 @@ Shape-identical envelope to `BandList`. `ReleaseListItem` matches
   location: string;
   country: string;
   label: string;
+  inclusion_reason?: string;
 }
 ```
 

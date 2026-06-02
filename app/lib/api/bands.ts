@@ -26,6 +26,7 @@ export interface BandCreateInput {
   label: string;
   band_picture?: string | null;
   logo?: string | null;
+  inclusion_reason?: string | null;
 }
 
 export type { MutationResult };

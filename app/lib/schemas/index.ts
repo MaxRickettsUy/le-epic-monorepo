@@ -72,6 +72,12 @@ const bandBaseSchema = z.object({
   mbid: z.string().nullish(),
   begin_year: z.number().nullish(),
   end_year: z.number().nullish(),
+  /**
+   * Curator note explaining why an adjacent / off-genre band is in the
+   * catalogue (e.g. "included for split LP with X"). Null when no note is
+   * needed — the default for the vast majority of bands.
+   */
+  inclusion_reason: z.string().nullish(),
   /** Curated sub-genres, strongest-voted first. */
   genres: z.array(genreSchema),
 });
@@ -174,6 +180,7 @@ export const bandFormSchema = z.object({
   label: z.string().trim(),
   band_picture: z.string().nullish(),
   logo: z.string().nullish(),
+  inclusion_reason: z.string().nullish(),
 });
 
 export const releaseFormSchema = z.object({

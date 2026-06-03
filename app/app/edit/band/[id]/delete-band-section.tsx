@@ -33,8 +33,11 @@ export const DeleteBandSection = ({ bandId, bandName }: { bandId: number; bandNa
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
+  const REASON_MAX = 500;
+  const detailMax = category === "other" ? REASON_MAX : REASON_MAX - (category.length + 2);
+
   const composedReason = (() => {
-    const d = detail.trim();
+    const d = detail.trim().slice(0, detailMax);
     if (category === "other") return d || null;
     return d ? `${category}: ${d}` : category;
   })();
@@ -128,8 +131,8 @@ export const DeleteBandSection = ({ bandId, bandName }: { bandId: number; bandNa
                 <Input
                   id="delete-reason-detail"
                   value={detail}
-                  onChange={(e) => setDetail(e.target.value)}
-                  maxLength={500}
+                  onChange={(e) => setDetail(e.target.value.slice(0, detailMax))}
+                  maxLength={detailMax}
                   placeholder={
                     category === "off-genre"
                       ? "e.g. sludge — MB tags say grindcore, not hardcore punk"

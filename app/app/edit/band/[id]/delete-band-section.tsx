@@ -12,14 +12,35 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { deleteBandAction } from "@/app/actions";
+
+const PRESET_CATEGORIES = ["off-genre", "not a band", "duplicate", "low quality", "other"] as const;
+
+type PresetCategory = (typeof PRESET_CATEGORIES)[number];
 
 export const DeleteBandSection = ({ bandId, bandName }: { bandId: number; bandName: string }) => {
   const [open, setOpen] = useState(false);
-  const [reason, setReason] = useState("");
+  const [category, setCategory] = useState<PresetCategory>("off-genre");
+  const [detail, setDetail] = useState("");
   const [blacklist, setBlacklist] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+
+  const REASON_MAX = 500;
+  const detailMax = category === "other" ? REASON_MAX : REASON_MAX - (category.length + 2);
+
+  const composedReason = (() => {
+    const d = detail.trim().slice(0, detailMax);
+    if (category === "other") return d || null;
+    return d ? `${category}: ${d}` : category;
+  })();
 
   const onDelete = () => {
     setError(null);
@@ -27,7 +48,7 @@ export const DeleteBandSection = ({ bandId, bandName }: { bandId: number; bandNa
       try {
         await deleteBandAction(bandId, {
           blacklist,
-          reason: reason.trim() || null,
+          reason: composedReason,
         });
       } catch (e) {
         // Server actions throw a special redirect error on success — Next.js
@@ -47,7 +68,8 @@ export const DeleteBandSection = ({ bandId, bandName }: { bandId: number; bandNa
     if (isPending) return;
     setOpen(next);
     if (!next) {
-      setReason("");
+      setCategory("off-genre");
+      setDetail("");
       setError(null);
     }
   };
@@ -80,18 +102,47 @@ export const DeleteBandSection = ({ bandId, bandName }: { bandId: number; bandNa
           </DialogHeader>
 
           <div className="flex flex-col gap-3">
-            <div className="flex flex-col gap-1">
-              <Label htmlFor="delete-reason">
-                Reason (optional, stored on the blacklist entry)
-              </Label>
-              <Input
-                id="delete-reason"
-                value={reason}
-                onChange={(e) => setReason(e.target.value)}
-                maxLength={500}
-                placeholder="e.g. off-genre — MB tags say grindcore, not hardcore punk"
-                disabled={isPending}
-              />
+            <div className="flex flex-col gap-2">
+              <div className="flex flex-col gap-1">
+                <Label htmlFor="delete-reason-category">
+                  Reason (stored on the blacklist entry)
+                </Label>
+                <Select
+                  value={category}
+                  onValueChange={(v) => setCategory(v as PresetCategory)}
+                  disabled={isPending}
+                >
+                  <SelectTrigger id="delete-reason-category">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {PRESET_CATEGORIES.map((c) => (
+                      <SelectItem key={c} value={c}>
+                        {c}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex flex-col gap-1">
+                <Label htmlFor="delete-reason-detail" className="text-muted-foreground">
+                  Detail (optional)
+                </Label>
+                <Input
+                  id="delete-reason-detail"
+                  value={detail}
+                  onChange={(e) => setDetail(e.target.value.slice(0, detailMax))}
+                  maxLength={detailMax}
+                  placeholder={
+                    category === "off-genre"
+                      ? "e.g. sludge — MB tags say grindcore, not hardcore punk"
+                      : category === "other"
+                        ? "describe the reason"
+                        : "optional extra context"
+                  }
+                  disabled={isPending}
+                />
+              </div>
             </div>
 
             <label className="flex items-center gap-2 text-sm">

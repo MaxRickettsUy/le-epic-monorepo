@@ -21,13 +21,7 @@ import {
 } from "@/components/ui/select";
 import { deleteBandAction } from "@/app/actions";
 
-const PRESET_CATEGORIES = [
-  "off-genre",
-  "not a band",
-  "duplicate",
-  "low quality",
-  "other",
-] as const;
+const PRESET_CATEGORIES = ["off-genre", "not a band", "duplicate", "low quality", "other"] as const;
 
 type PresetCategory = (typeof PRESET_CATEGORIES)[number];
 

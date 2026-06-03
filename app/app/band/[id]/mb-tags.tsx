@@ -26,9 +26,7 @@ export const MbTagsTable = ({ tags, seedVotes, totalVotes, seedShare }: MbTagsTa
 
   if (tags.length === 0) {
     return (
-      <p className="p-4 text-sm text-muted-foreground">
-        MusicBrainz has no tags for this band.
-      </p>
+      <p className="p-4 text-sm text-muted-foreground">MusicBrainz has no tags for this band.</p>
     );
   }
 
@@ -37,11 +35,10 @@ export const MbTagsTable = ({ tags, seedVotes, totalVotes, seedShare }: MbTagsTa
   return (
     <div className="flex flex-col gap-2">
       <p className="px-1 text-xs text-muted-foreground">
-        Raw MusicBrainz tag votes captured at seed time. Curated sub-genres come from
-        intersecting this list with the project&apos;s genre vocabulary, so tags missing
-        from that vocabulary (e.g. metal subgenres) are dropped before sub-genres are
-        assigned. Hardcore-punk share: <span className="font-medium">{sharePct}</span>{" "}
-        ({seedVotes ?? 0}/{totalVotes ?? 0}).
+        Raw MusicBrainz tag votes captured at seed time. Curated sub-genres come from intersecting
+        this list with the project&apos;s genre vocabulary, so tags missing from that vocabulary
+        (e.g. metal subgenres) are dropped before sub-genres are assigned. Hardcore-punk share:{" "}
+        <span className="font-medium">{sharePct}</span> ({seedVotes ?? 0}/{totalVotes ?? 0}).
       </p>
       <div className="max-h-[60vh] overflow-y-auto">
         <Table>

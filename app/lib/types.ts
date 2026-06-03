@@ -13,6 +13,7 @@ export type {
   SimilarBand,
   ReleaseDetail,
   BandListItem,
+  NeedsReviewItem,
   Band,
   BandList,
   CountryCount,

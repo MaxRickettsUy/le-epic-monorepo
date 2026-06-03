@@ -90,7 +90,7 @@ def get_all(
     )
 
 
-@router.get("/needs-review", response_model=list[schemas.BandListItem])
+@router.get("/needs-review", response_model=list[schemas.NeedsReviewItem])
 def needs_review(
     include_resolved: bool = Query(
         False,
@@ -117,7 +117,7 @@ def needs_review(
         Band.name.asc(),
     ).limit(limit)
     bands = db.scalars(stmt).all()
-    return [schemas.BandListItem.model_validate(b) for b in bands]
+    return [schemas.NeedsReviewItem.model_validate(b) for b in bands]
 
 
 @router.get("/countries", response_model=list[schemas.CountryCount])

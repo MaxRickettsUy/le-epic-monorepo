@@ -90,9 +90,6 @@ const bandBaseSchema = z.object({
   genres: z.array(genreSchema),
 });
 
-/** Band as returned in the paginated list (`GET /band/`). */
-export const bandListItemSchema = bandBaseSchema;
-
 /**
  * One MusicBrainz tag vote captured at seed time. The full snapshot lets
  * curators see why a band was seeded (and why its curated `genres` look the
@@ -101,6 +98,18 @@ export const bandListItemSchema = bandBaseSchema;
 export const mbTagSchema = z.object({
   name: z.string(),
   votes: z.number(),
+});
+
+/** Band as returned in the paginated list (`GET /band/`). */
+export const bandListItemSchema = bandBaseSchema;
+
+/**
+ * Band as returned by `GET /band/needs-review` — `BandListItem` plus the raw
+ * MB tag snapshot, so curators can judge off-genre candidates without
+ * drilling into each band's detail page.
+ */
+export const needsReviewItemSchema = bandListItemSchema.extend({
+  mb_tags: z.array(mbTagSchema).nullish(),
 });
 
 /** Band detail response (`GET /band/{id}`). */
@@ -228,6 +237,7 @@ export type BandSummary = z.infer<typeof bandSummarySchema>;
 export type SimilarBand = z.infer<typeof similarBandSchema>;
 export type ReleaseDetail = z.infer<typeof releaseDetailSchema>;
 export type BandListItem = z.infer<typeof bandListItemSchema>;
+export type NeedsReviewItem = z.infer<typeof needsReviewItemSchema>;
 export type Band = z.infer<typeof bandSchema>;
 export type BandList = z.infer<typeof bandListSchema>;
 export type CountryCount = z.infer<typeof countryCountSchema>;

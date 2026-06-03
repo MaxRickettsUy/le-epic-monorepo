@@ -2,20 +2,20 @@ import { z } from "zod";
 import type {
   Band,
   BandList,
-  BandListItem,
   BandStatus,
   CountryCount,
   Genre,
   MutationResult,
+  NeedsReviewItem,
   SimilarBand,
 } from "@/lib/types";
 import {
-  bandListItemSchema,
   bandListSchema,
   bandSchema,
   countryCountSchema,
   genreSchema,
   mutationResultSchema,
+  needsReviewItemSchema,
   similarBandSchema,
 } from "@/lib/schemas";
 import { apiFetch, apiFetchOrNull } from "./client";
@@ -75,12 +75,12 @@ export function listCountries(): Promise<CountryCount[]> {
  */
 export function listNeedsReview(
   options: { includeResolved?: boolean; limit?: number } = {},
-): Promise<BandListItem[]> {
+): Promise<NeedsReviewItem[]> {
   const params = new URLSearchParams();
   if (options.includeResolved) params.set("include_resolved", "true");
   if (options.limit != null) params.set("limit", String(options.limit));
   const qs = params.toString();
-  return apiFetch(`/band/needs-review${qs ? `?${qs}` : ""}`, z.array(bandListItemSchema), {
+  return apiFetch(`/band/needs-review${qs ? `?${qs}` : ""}`, z.array(needsReviewItemSchema), {
     cache: "no-store",
   });
 }

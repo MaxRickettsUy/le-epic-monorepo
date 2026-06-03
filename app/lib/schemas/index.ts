@@ -90,13 +90,37 @@ const bandBaseSchema = z.object({
   genres: z.array(genreSchema),
 });
 
+/**
+ * One MusicBrainz tag vote captured at seed time. The full snapshot lets
+ * curators see why a band was seeded (and why its curated `genres` look the
+ * way they do) without cross-referencing musicbrainz.org.
+ */
+export const mbTagSchema = z.object({
+  name: z.string(),
+  votes: z.number(),
+});
+
 /** Band as returned in the paginated list (`GET /band/`). */
 export const bandListItemSchema = bandBaseSchema;
+
+/**
+ * Band as returned by `GET /band/needs-review` — `BandListItem` plus the raw
+ * MB tag snapshot, so curators can judge off-genre candidates without
+ * drilling into each band's detail page.
+ */
+export const needsReviewItemSchema = bandListItemSchema.extend({
+  mb_tags: z.array(mbTagSchema).nullish(),
+});
 
 /** Band detail response (`GET /band/{id}`). */
 export const bandSchema = bandBaseSchema.extend({
   members: z.array(memberSchema),
   releases: z.array(releaseSchema),
+  /**
+   * Full MB tag snapshot, votes desc. Null on bands that pre-date the
+   * snapshot column; empty array on bands MB has no tags for.
+   */
+  mb_tags: z.array(mbTagSchema).nullish(),
 });
 
 /**
@@ -206,12 +230,14 @@ export type ReleaseFormValues = z.infer<typeof releaseFormSchema>;
 export type BandStatus = z.infer<typeof bandStatusSchema>;
 export type Member = z.infer<typeof memberSchema>;
 export type Genre = z.infer<typeof genreSchema>;
+export type MbTag = z.infer<typeof mbTagSchema>;
 export type Track = z.infer<typeof trackSchema>;
 export type Release = z.infer<typeof releaseSchema>;
 export type BandSummary = z.infer<typeof bandSummarySchema>;
 export type SimilarBand = z.infer<typeof similarBandSchema>;
 export type ReleaseDetail = z.infer<typeof releaseDetailSchema>;
 export type BandListItem = z.infer<typeof bandListItemSchema>;
+export type NeedsReviewItem = z.infer<typeof needsReviewItemSchema>;
 export type Band = z.infer<typeof bandSchema>;
 export type BandList = z.infer<typeof bandListSchema>;
 export type CountryCount = z.infer<typeof countryCountSchema>;

@@ -11,6 +11,30 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { GenreBadges } from "@/components/GenreBadges";
+import type { MbTag } from "@/lib/types";
+
+const MAX_INLINE_TAGS = 5;
+
+function MbTagList({ tags }: { tags: MbTag[] | null | undefined }) {
+  if (tags == null) return <span className="text-muted-foreground">—</span>;
+  if (tags.length === 0) return <span className="text-muted-foreground">no MB tags</span>;
+  const head = tags.slice(0, MAX_INLINE_TAGS);
+  const rest = tags.length - head.length;
+  return (
+    <div
+      className="flex flex-wrap gap-1"
+      title={tags.map((t) => `${t.name} (${t.votes})`).join(", ")}
+    >
+      {head.map((tag) => (
+        <Badge key={tag.name} variant="outline" className="font-normal">
+          {tag.name}
+          <span className="ml-1 text-muted-foreground tabular-nums">{tag.votes}</span>
+        </Badge>
+      ))}
+      {rest > 0 && <span className="self-center text-xs text-muted-foreground">+{rest} more</span>}
+    </div>
+  );
+}
 
 export const metadata = { title: "Needs review" };
 // Always fresh: this view is a curation tool, not a public catalogue page.
@@ -60,6 +84,7 @@ export default async function NeedsReviewPage({ searchParams }: PageProps) {
               <TableHead>Band</TableHead>
               <TableHead>Country</TableHead>
               <TableHead>Sub-genres</TableHead>
+              <TableHead>MB tags (top {MAX_INLINE_TAGS})</TableHead>
               <TableHead>Seed share</TableHead>
               <TableHead>Votes</TableHead>
               <TableHead>Reviewed?</TableHead>
@@ -70,9 +95,22 @@ export default async function NeedsReviewPage({ searchParams }: PageProps) {
             {bands.map((band) => (
               <TableRow key={band.id}>
                 <TableCell className="font-medium">
-                  <Link href={`/band/${band.id}`} className="hover:underline">
-                    {band.name}
-                  </Link>
+                  <div className="flex items-center gap-2">
+                    <Link href={`/band/${band.id}`} className="hover:underline">
+                      {band.name}
+                    </Link>
+                    {band.mbid && (
+                      <a
+                        href={`https://musicbrainz.org/artist/${band.mbid}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-xs text-muted-foreground underline hover:no-underline"
+                        title="Open on MusicBrainz"
+                      >
+                        MB&nbsp;↗
+                      </a>
+                    )}
+                  </div>
                 </TableCell>
                 <TableCell className="text-muted-foreground">{band.country || "—"}</TableCell>
                 <TableCell>
@@ -81,6 +119,9 @@ export default async function NeedsReviewPage({ searchParams }: PageProps) {
                   ) : (
                     <span className="text-muted-foreground">—</span>
                   )}
+                </TableCell>
+                <TableCell>
+                  <MbTagList tags={band.mb_tags} />
                 </TableCell>
                 <TableCell>{formatShare(band.seed_share, band.total_tag_votes)}</TableCell>
                 <TableCell className="text-muted-foreground">
@@ -102,7 +143,7 @@ export default async function NeedsReviewPage({ searchParams }: PageProps) {
             ))}
             {bands.length === 0 && (
               <TableRow>
-                <TableCell colSpan={7} className="text-center text-muted-foreground">
+                <TableCell colSpan={8} className="text-center text-muted-foreground">
                   Nothing to review.
                 </TableCell>
               </TableRow>

@@ -5,9 +5,11 @@ import { redirect } from "next/navigation";
 import {
   createBand,
   updateBand,
+  deleteBand,
   createRelease,
   updateRelease,
   type BandCreateInput,
+  type DeleteBandOptions,
   type ReleaseCreateInput,
 } from "@/lib/api";
 
@@ -22,6 +24,13 @@ export async function updateBandAction(id: number, input: BandCreateInput) {
   revalidatePath("/");
   revalidatePath(`/band/${id}`);
   redirect(`/band/${id}`);
+}
+
+export async function deleteBandAction(id: number, options: DeleteBandOptions = {}) {
+  await deleteBand(id, options);
+  revalidatePath("/");
+  revalidatePath("/admin/needs-review");
+  redirect("/admin/needs-review");
 }
 
 export async function createReleaseAction(bandId: number, input: ReleaseCreateInput) {

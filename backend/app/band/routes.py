@@ -1,3 +1,4 @@
+import logging
 import string
 from typing import Literal
 
@@ -7,11 +8,13 @@ from sqlalchemy.orm import Session, selectinload
 
 from app import schemas
 from app.database import get_db
-from app.models import Band, BandGenre, BandMember, Genre
+from app.models import Band, BandBlacklist, BandGenre, BandMember, Genre
 from app.services import musicbrainz
 from app.settings import settings
+from seed.blacklist import append_entry as append_blacklist_entry
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
 # Weights for the similar-bands score. No real similarity model exists yet, so
 # we combine the locally-stored signals; higher = stronger pull. Tune freely —
@@ -87,7 +90,7 @@ def get_all(
     )
 
 
-@router.get("/needs-review", response_model=list[schemas.BandListItem])
+@router.get("/needs-review", response_model=list[schemas.NeedsReviewItem])
 def needs_review(
     include_resolved: bool = Query(
         False,
@@ -114,7 +117,7 @@ def needs_review(
         Band.name.asc(),
     ).limit(limit)
     bands = db.scalars(stmt).all()
-    return [schemas.BandListItem.model_validate(b) for b in bands]
+    return [schemas.NeedsReviewItem.model_validate(b) for b in bands]
 
 
 @router.get("/countries", response_model=list[schemas.CountryCount])
@@ -260,10 +263,57 @@ def update(id: int, payload: schemas.BandCreate, db: Session = Depends(get_db)):
 
 
 @router.delete("/{id}/delete")
-def delete(id: int, db: Session = Depends(get_db)):
+def delete(
+    id: int,
+    blacklist: bool = Query(
+        True,
+        description=(
+            "If true (default), the band's MBID is recorded in band_blacklist "
+            "AND appended to seed/blacklist.json so seed.mb_dump skips it on "
+            "future runs and the decision is portable across DBs / teammates "
+            "/ prod. Commit the JSON diff after deleting. Set false to allow "
+            "a later re-seed to bring the band back (e.g. misclick recovery)."
+        ),
+    ),
+    reason: str | None = Query(
+        None,
+        max_length=500,
+        description="Optional curator note stored alongside the blacklist entry.",
+    ),
+    db: Session = Depends(get_db),
+):
     band = db.get(Band, id)
     if band is None:
         raise HTTPException(status_code=404, detail="Band not found")
+    to_append: tuple[str, str, str | None] | None = None
+    if blacklist and band.mbid:
+        entry = db.get(BandBlacklist, band.mbid)
+        if entry is None:
+            db.add(BandBlacklist(mbid=band.mbid, name=band.name, reason=reason))
+            effective_reason = reason
+        else:
+            # The name on disk may pre-date a band rename — refresh from the
+            # current row, which the curator just confirmed via the UI.
+            entry.name = band.name
+            if reason is not None:
+                entry.reason = reason
+            # Mirror the DB state to the JSON: a re-delete without ?reason=
+            # must NOT strip the existing reason from the file.
+            effective_reason = reason if reason is not None else entry.reason
+        to_append = (band.mbid, band.name, effective_reason)
     db.delete(band)
     db.commit()
+    # Mirror the decision into the checked-in JSON so it survives DB resets and
+    # is portable to other environments. The DB row is the authority — failing
+    # to update the file is a "you forgot to commit" reminder, not a request
+    # failure — so we log and move on.
+    if to_append is not None:
+        mbid, name, append_reason = to_append
+        try:
+            append_blacklist_entry(mbid, name, append_reason)
+        except (OSError, ValueError) as e:
+            # ValueError covers a corrupt/non-list blacklist.json (load_blacklist
+            # validates its shape before we append) — still just a "you forgot
+            # to commit"-class reminder, not a request failure.
+            logger.warning("blacklist.json write failed for mbid=%s: %s", mbid, e)
     return "band deleted"

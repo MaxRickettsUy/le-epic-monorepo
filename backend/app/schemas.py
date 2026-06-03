@@ -130,6 +130,24 @@ class BandListItem(BandBase):
     pass
 
 
+class MbTag(BaseModel):
+    """One MusicBrainz tag vote captured at seed time."""
+
+    name: str
+    votes: int
+
+
+class NeedsReviewItem(BandListItem):
+    """A band on /band/needs-review, including its raw MB tag snapshot.
+
+    The public catalogue listing stays lean (no `mb_tags`); the curator-facing
+    needs-review feed carries the snapshot so reviewers can judge off-genre
+    candidates without opening each band's detail page.
+    """
+
+    mb_tags: list["MbTag"] | None = None
+
+
 class BandList(BaseModel):
     bands: list[BandListItem]
     next: int | None = None
@@ -146,6 +164,10 @@ class CountryCount(BaseModel):
 class BandDetail(BandBase):
     members: list[Member] = []
     releases: list[ReleaseInBand] = []
+    # Full MB tag snapshot, votes desc. Null on bands that pre-date the
+    # snapshot column; empty list on bands MB has no tags for. Detail-only —
+    # the list endpoint stays lean.
+    mb_tags: list[MbTag] | None = None
 
 
 class SimilarBand(ORMModel):

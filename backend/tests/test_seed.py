@@ -5,13 +5,11 @@ same queries that run against the full dump are exercised here in-process.
 """
 
 import pytest
-from sqlalchemy import create_engine, event, text
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy import create_engine, text
 from sqlalchemy.pool import StaticPool
 
-from app.database import Base
 from app.genres import CURATED_GENRES
-from app.models import Album, Band, BandGenre, BandMember, Genre, Member
+from app.models import Album, Band, BandBlacklist, BandGenre, BandMember, Genre, Member
 from seed import band_art, cover_art
 from seed.mb_dump import MEMBER_OF_BAND_GID, run_seed
 
@@ -38,8 +36,12 @@ MB_DATA = [
     "INSERT INTO area VALUES (1,'United States'),(2,'United Kingdom'),(3,'Japan')",
     # tag 1 is the scope tag; 3-5 are curated sub-genres (4 is an alias of 3);
     # 2 and 6 are non-curated and must be ignored.
+    # tag 6 ('rock') stands in for any tag that isn't in CURATED_GENRES — the
+    # earlier 'emo' choice got absorbed when the vocabulary expanded, so picking
+    # a clearly out-of-scope label keeps the "non-curated tags drop" assertion
+    # honest even as the vocabulary grows.
     "INSERT INTO tag VALUES "
-    "(1,'hardcore punk'),(2,'indie'),(3,'youth crew'),(4,'youthcrew'),(5,'d-beat'),(6,'emo')",
+    "(1,'hardcore punk'),(2,'indie'),(3,'youth crew'),(4,'youthcrew'),(5,'d-beat'),(6,'rock')",
     # Bands: Minor Threat (US, split-up), Discharge (UK, active), GauZe (JP),
     # plus an off-genre band that must be excluded.
     "INSERT INTO artist VALUES "
@@ -52,7 +54,7 @@ MB_DATA = [
     "(21,'cal-gid','Cal Morris',2,0,NULL,NULL)",
     "INSERT INTO artist_tag VALUES (10,1,5),(11,1,3),(12,1,2),(99,2,4),"
     # Sub-genre tags: Minor Threat -> youth crew (votes 7) + the 'youthcrew'
-    # alias (votes 3, same genre) + 'emo' (non-curated). Discharge -> d-beat.
+    # alias (votes 3, same genre) + 'rock' (non-curated). Discharge -> d-beat.
     # GauZe gets none. Indie Co (99) is off-genre and not seeded at all.
     "(10,3,7),(10,4,3),(10,6,2),(11,5,9)",
     # artist_credit ids reuse the artist id + 100 for clarity.
@@ -89,26 +91,6 @@ def mb_engine():
         for stmt in MB_DATA:
             conn.execute(text(stmt))
     return engine
-
-
-@pytest.fixture()
-def app_session():
-    engine = create_engine(
-        "sqlite://", connect_args={"check_same_thread": False}, poolclass=StaticPool
-    )
-
-    @event.listens_for(engine, "connect")
-    def _enable_sqlite_fks(dbapi_connection, _record):
-        # SQLite ignores FK constraints unless told otherwise.
-        cursor = dbapi_connection.cursor()
-        cursor.execute("PRAGMA foreign_keys=ON")
-        cursor.close()
-
-    Base.metadata.create_all(bind=engine)
-    Session = sessionmaker(bind=engine, expire_on_commit=False)
-    db = Session()
-    yield db
-    db.close()
 
 
 def test_seed_populates_bands_albums_members(mb_engine, app_session):
@@ -158,7 +140,7 @@ def test_seed_links_curated_subgenres(mb_engine, app_session):
     # The whole curated vocabulary is upserted regardless of usage.
     assert app_session.query(Genre).count() == len(CURATED_GENRES)
 
-    # Minor Threat -> youth-crew (the 'youthcrew' alias collapses in, 'emo' is
+    # Minor Threat -> youth-crew (the 'youthcrew' alias collapses in, 'rock' is
     # dropped); Discharge -> d-beat; GauZe -> nothing.
     bands = {b.name: b for b in app_session.query(Band).all()}
     mt_genres = {g.slug: g.vote_count for g in bands["Minor Threat"].genres}
@@ -171,6 +153,55 @@ def test_seed_links_curated_subgenres(mb_engine, app_session):
     assert app_session.query(BandGenre).count() == 2
 
 
+def test_seed_ignores_non_positive_vote_tags(mb_engine, app_session):
+    """MB tag counts <= 0 are community refutations and must not pull a band
+    into scope or create a sub-genre link.
+
+    Reproduces the Bathory case: a band whose only `hardcore punk` vote is -1
+    (and whose only mapped sub-genre alias is also at -1) must not appear in
+    the catalogue.
+    """
+    with mb_engine.begin() as conn:
+        # Off-genre artist with a refuted scope tag and a refuted sub-genre tag.
+        # Mirrors Bathory: hardcore punk(-1), oi(-1) on a metal band.
+        conn.execute(
+            text(
+                "INSERT INTO artist VALUES (50,'bath-gid','Bathory',1,1,1983,2004)"
+            )
+        )
+        conn.execute(text("INSERT INTO tag VALUES (7,'oi')"))
+        # count=-1 (refuted scope), count=-1 (refuted sub-genre alias).
+        conn.execute(
+            text("INSERT INTO artist_tag VALUES (50,1,-1),(50,7,-1)")
+        )
+
+    run_seed(mb_engine, app_session, tag="hardcore punk")
+
+    assert (
+        app_session.query(Band).filter(Band.name == "Bathory").count() == 0
+    ), "Bathory should not enter scope on a refuted (count=-1) hardcore-punk tag"
+
+
+def test_seed_purges_pre_fix_non_positive_genre_links(mb_engine, app_session):
+    """One-shot heal of bad genre links the pre-fix seed wrote.
+
+    Bands seeded before the count > 0 filter could carry BandGenre rows with
+    vote_count <= 0 (e.g. Bathory's `oi`=-1). The current seed purges them.
+    """
+    run_seed(mb_engine, app_session, tag="hardcore punk")
+    mt = app_session.query(Band).filter(Band.name == "Minor Threat").one()
+    oi_genre = app_session.query(Genre).filter(Genre.slug == "oi").one()
+    # Simulate the pre-fix artifact: a negative-vote link.
+    app_session.add(BandGenre(band=mt, genre=oi_genre, vote_count=-1))
+    app_session.commit()
+    assert app_session.query(BandGenre).filter(BandGenre.vote_count <= 0).count() == 1
+
+    run_seed(mb_engine, app_session, tag="hardcore punk")
+
+    assert app_session.query(BandGenre).filter(BandGenre.vote_count <= 0).count() == 0
+    assert "oi" not in {g.genre.slug for g in mt.genres}
+
+
 def test_seed_subgenres_idempotent(mb_engine, app_session):
     run_seed(mb_engine, app_session, tag="hardcore punk")
     stats2 = run_seed(mb_engine, app_session, tag="hardcore punk")
@@ -179,6 +210,53 @@ def test_seed_subgenres_idempotent(mb_engine, app_session):
     assert app_session.query(BandGenre).count() == 2
     assert stats2.genres_linked == 0
     assert stats2.genre_links_updated == 0
+
+
+def test_seed_applies_blacklist_json_before_filtering(
+    mb_engine, app_session, tmp_path, monkeypatch
+):
+    # A checked-in blacklist entry should be upserted into band_blacklist by
+    # run_seed itself, so a fresh DB stays sticky without having to first call
+    # the delete endpoint manually.
+    blacklist_file = tmp_path / "blacklist.json"
+    blacklist_file.write_text(
+        '[{"mbid": "gauze-gid", "reason": "checked-in: not hardcore"}]'
+    )
+    import seed.blacklist as bl
+
+    monkeypatch.setattr(bl, "BLACKLIST_PATH", blacklist_file)
+
+    stats = run_seed(mb_engine, app_session, tag="hardcore punk")
+
+    names = {b.name for b in app_session.query(Band).all()}
+    assert "GauZe" not in names
+    assert names == {"Minor Threat", "Discharge"}
+    assert stats.bands_blacklisted == 1
+    entry = app_session.get(BandBlacklist, "gauze-gid")
+    assert entry is not None
+    assert entry.reason == "checked-in: not hardcore"
+
+
+def test_seed_skips_blacklisted_mbids(mb_engine, app_session):
+    # First pass seeds all three bands.
+    run_seed(mb_engine, app_session, tag="hardcore punk")
+    assert app_session.query(Band).count() == 3
+
+    # Curator removes GauZe and blacklists its MBID — the same path the
+    # delete endpoint takes.
+    gauze = app_session.query(Band).filter_by(name="GauZe").one()
+    app_session.add(BandBlacklist(mbid=gauze.mbid, reason="not hardcore"))
+    app_session.delete(gauze)
+    app_session.commit()
+
+    stats = run_seed(mb_engine, app_session, tag="hardcore punk")
+
+    names = {b.name for b in app_session.query(Band).all()}
+    assert "GauZe" not in names
+    assert names == {"Minor Threat", "Discharge"}
+    assert stats.bands_blacklisted == 1
+    # Albums that belonged only to the skipped artist aren't resurrected either.
+    assert app_session.query(Album).filter_by(release_group_mbid="rg-gauze").count() == 0
 
 
 def test_cover_art_sets_only_found_art(mb_engine, app_session):

@@ -64,6 +64,105 @@ def test_update_and_delete(client):
     assert client.get(f"/band/{band_id}").status_code == 404
 
 
+def _create_with_mbid(client, db, mbid: str, **overrides) -> int:
+    from app.models import Band
+
+    band_id = _create(client, **overrides).json()["id"]
+    band = db.get(Band, band_id)
+    band.mbid = mbid
+    db.commit()
+    return band_id
+
+
+def test_delete_blacklists_mbid_by_default(client, db):
+    from app.models import BandBlacklist
+
+    band_id = _create_with_mbid(client, db, "mt-gid")
+    res = client.request("DELETE", f"/band/{band_id}/delete", params={"reason": "off-genre"})
+    assert res.status_code == 200
+
+    entry = db.get(BandBlacklist, "mt-gid")
+    assert entry is not None
+    assert entry.name == "Minor Threat"
+    assert entry.reason == "off-genre"
+
+
+def test_delete_blacklist_opt_out(client, db):
+    from app.models import BandBlacklist
+
+    band_id = _create_with_mbid(client, db, "mt-gid")
+    res = client.request("DELETE", f"/band/{band_id}/delete?blacklist=false")
+    assert res.status_code == 200
+    assert db.get(BandBlacklist, "mt-gid") is None
+
+
+def test_delete_band_without_mbid_does_not_blacklist(client, db):
+    from app.models import BandBlacklist
+
+    # Default BAND fixture has no mbid; nothing to blacklist by.
+    band_id = _create(client).json()["id"]
+    assert client.request("DELETE", f"/band/{band_id}/delete").status_code == 200
+    assert db.query(BandBlacklist).count() == 0
+
+
+def test_delete_appends_to_blacklist_json(client, db, tmp_path, monkeypatch):
+    import json as _json
+
+    import seed.blacklist as bl
+
+    path = tmp_path / "blacklist.json"
+    monkeypatch.setattr(bl, "BLACKLIST_PATH", path)
+
+    band_id = _create_with_mbid(client, db, "mt-gid")
+    res = client.request("DELETE", f"/band/{band_id}/delete", params={"reason": "off-genre"})
+    assert res.status_code == 200
+    assert _json.loads(path.read_text()) == [
+        {"mbid": "mt-gid", "name": "Minor Threat", "reason": "off-genre"}
+    ]
+
+
+def test_redelete_without_reason_keeps_existing_reason(client, db, tmp_path, monkeypatch):
+    """A re-delete without ?reason= must NOT strip the reason from the JSON or DB.
+
+    Reproduces the bug where the second delete passed reason=None into
+    `append_entry`, which rewrote the entry and dropped the reason key
+    because None values are skipped on write.
+    """
+    import json as _json
+
+    import seed.blacklist as bl
+
+    path = tmp_path / "blacklist.json"
+    monkeypatch.setattr(bl, "BLACKLIST_PATH", path)
+
+    # First delete establishes the reason on both DB and JSON.
+    band_id = _create_with_mbid(client, db, "mt-gid")
+    client.request("DELETE", f"/band/{band_id}/delete", params={"reason": "off-genre"})
+
+    # Simulate a re-seed bringing the same MBID back, then re-delete without reason.
+    band_id2 = _create_with_mbid(client, db, "mt-gid")
+    res = client.request("DELETE", f"/band/{band_id2}/delete")
+    assert res.status_code == 200
+
+    from app.models import BandBlacklist
+
+    assert db.get(BandBlacklist, "mt-gid").reason == "off-genre"
+    assert _json.loads(path.read_text()) == [
+        {"mbid": "mt-gid", "name": "Minor Threat", "reason": "off-genre"}
+    ]
+
+
+def test_delete_blacklist_false_does_not_touch_json(client, db, tmp_path, monkeypatch):
+    import seed.blacklist as bl
+
+    path = tmp_path / "blacklist.json"
+    monkeypatch.setattr(bl, "BLACKLIST_PATH", path)
+
+    band_id = _create_with_mbid(client, db, "mt-gid")
+    client.request("DELETE", f"/band/{band_id}/delete?blacklist=false")
+    assert not path.exists()
+
+
 def test_similar_404(client):
     assert client.get("/band/999/similar").status_code == 404
 

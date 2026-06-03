@@ -27,8 +27,9 @@ from sqlalchemy.orm import Session
 
 from app.database import SessionLocal
 from app.genres import CURATED_GENRES, slug_for_tag
-from app.models import Album, Band, BandGenre, BandMember, Genre, Member
+from app.models import Album, Band, BandBlacklist, BandGenre, BandMember, Genre, Member
 from app.settings import settings
+from seed.blacklist import apply_blacklist
 from seed.outliers import summarize_tags
 
 logger = logging.getLogger("seed.mb_dump")
@@ -39,23 +40,24 @@ MEMBER_OF_BAND_GID = "5be4c609-9afa-4ea0-910b-12ffb71e3821"
 # MBIDs are cast to text on the way out: psycopg2 returns MB's `uuid` columns
 # as `UUID` objects, but the app schema stores them as `String(36)`. Without
 # this cast the existing-row lookups (`existing_bands.get(row["mbid"])`)
-# miss on re-runs and the seed tries to re-insert every row.
+# miss on re-runs and the seed tries to re-insert every row. `CAST(... AS text)`
+# is portable across both Postgres and the SQLite fixture the tests use.
 _ARTIST_SQL = text(
     """
-    SELECT a.id AS artist_id, a.gid::text AS mbid, a.name AS name,
+    SELECT a.id AS artist_id, CAST(a.gid AS text) AS mbid, a.name AS name,
            ar.name AS area_name, a.ended AS ended,
            a.begin_date_year AS begin_year, a.end_date_year AS end_year
     FROM artist a
     JOIN artist_tag atag ON atag.artist = a.id
     JOIN tag t ON t.id = atag.tag
     LEFT JOIN area ar ON ar.id = a.area
-    WHERE t.name = :tag
+    WHERE t.name = :tag AND atag.count > 0
     """
 )
 
 _RELEASE_GROUP_SQL = text(
     """
-    SELECT acn.artist AS artist_id, rg.gid::text AS rg_mbid, rg.name AS rg_name,
+    SELECT acn.artist AS artist_id, CAST(rg.gid AS text) AS rg_mbid, rg.name AS rg_name,
            rgpt.name AS primary_type, rgm.first_release_date_year AS year
     FROM release_group rg
     JOIN artist_credit_name acn ON acn.artist_credit = rg.artist_credit
@@ -67,7 +69,7 @@ _RELEASE_GROUP_SQL = text(
 
 _MEMBER_SQL = text(
     """
-    SELECT laa.entity1 AS band_id, m.gid::text AS member_mbid, m.name AS member_name,
+    SELECT laa.entity1 AS band_id, CAST(m.gid AS text) AS member_mbid, m.name AS member_name,
            MIN(lat.name) AS role
     FROM l_artist_artist laa
     JOIN link l ON l.id = laa.link
@@ -80,13 +82,16 @@ _MEMBER_SQL = text(
     """
 ).bindparams(bindparam("band_ids", expanding=True))
 
-# All tags on the in-scope artists; mapped to curated sub-genres in run_seed.
+# All *positively-voted* tags on the in-scope artists; mapped to curated
+# sub-genres in run_seed. MB tag counts can be negative (downvoted to refute
+# the tag, e.g. Bathory's "hardcore punk"=-1 / "oi"=-1) or zero — treating
+# those as present links bands to genres the community has explicitly rejected.
 _ARTIST_TAGS_SQL = text(
     """
     SELECT atag.artist AS artist_id, t.name AS tag_name, atag.count AS votes
     FROM artist_tag atag
     JOIN tag t ON t.id = atag.tag
-    WHERE atag.artist IN :artist_ids
+    WHERE atag.artist IN :artist_ids AND atag.count > 0
     """
 ).bindparams(bindparam("artist_ids", expanding=True))
 
@@ -95,6 +100,7 @@ _ARTIST_TAGS_SQL = text(
 class SeedStats:
     bands_inserted: int = 0
     bands_updated: int = 0
+    bands_blacklisted: int = 0
     albums_inserted: int = 0
     albums_updated: int = 0
     members_inserted: int = 0
@@ -108,6 +114,7 @@ class SeedStats:
         return {
             "bands_inserted": self.bands_inserted,
             "bands_updated": self.bands_updated,
+            "bands_blacklisted": self.bands_blacklisted,
             "albums_inserted": self.albums_inserted,
             "albums_updated": self.albums_updated,
             "members_inserted": self.members_inserted,
@@ -131,6 +138,10 @@ def run_seed(mb_engine: Engine, app_session: Session, *, tag: str | None = None)
     tag = tag or settings.seed_tag
     stats = SeedStats()
 
+    # Apply the checked-in blacklist first so the table is at least as broad as
+    # the source of truth before we read it back to filter artist rows.
+    apply_blacklist(app_session)
+
     with mb_engine.connect() as mb:
         # --- Genres (curated vocabulary) --------------------------------
         # Upsert the curated vocabulary (idempotent by slug); CURATED_GENRES
@@ -152,6 +163,18 @@ def run_seed(mb_engine: Engine, app_session: Session, *, tag: str | None = None)
             logger.warning("No artists found for tag %r", tag)
             app_session.commit()
             return stats
+
+        # Skip MBIDs a curator has previously removed; otherwise every MB dump
+        # re-runs would silently resurrect the off-genre bands they cleaned out.
+        blacklist = {b.mbid for b in app_session.query(BandBlacklist)}
+        if blacklist:
+            kept: list = []
+            for row in artist_rows:
+                if row["mbid"] in blacklist:
+                    stats.bands_blacklisted += 1
+                else:
+                    kept.append(row)
+            artist_rows = kept
 
         # --- Bands -------------------------------------------------------
         existing_bands = {b.mbid: b for b in app_session.query(Band).filter(Band.mbid.isnot(None))}
@@ -253,6 +276,20 @@ def run_seed(mb_engine: Engine, app_session: Session, *, tag: str | None = None)
                 (row["tag_name"], int(row["votes"] or 0))
             )
 
+        # One-shot heal of bad rows the pre-fix seed wrote: any link whose
+        # vote_count is non-positive came from a downvoted MB tag (e.g.
+        # Bathory's "oi"=-1). The current SQL filters those out at source, so
+        # we'll never recreate them — drop them here so the public band page
+        # stops surfacing community-refuted sub-genres.
+        bad_link_count = (
+            app_session.query(BandGenre)
+            .filter(BandGenre.vote_count <= 0)
+            .delete(synchronize_session=False)
+        )
+        if bad_link_count:
+            logger.info("Purged %d non-positive-vote genre links", bad_link_count)
+        app_session.flush()
+
         existing_genre_links = {
             (bg.band_id, bg.genre_id): bg for bg in app_session.query(BandGenre)
         }
@@ -282,12 +319,19 @@ def run_seed(mb_engine: Engine, app_session: Session, *, tag: str | None = None)
         # so /band/needs-review can rank candidate outliers without touching
         # the MB dump. Bands with no tag rows get zeros / a null share.
         for mb_artist_id, band in band_by_mb_id.items():
-            seed_votes, total, _other = summarize_tags(
-                tags_by_artist.get(mb_artist_id, []), tag
-            )
+            tags = tags_by_artist.get(mb_artist_id, [])
+            seed_votes, total, _other = summarize_tags(tags, tag)
             band.seed_votes = seed_votes
             band.total_tag_votes = total
             band.seed_share = (seed_votes / total) if total else None
+            # Snapshot the full tag list (votes desc) so curators can audit the
+            # raw signal without the MB dump on hand. Empty list (not null) when
+            # MB has no tags, so the UI can distinguish "seeded, no tags" from
+            # "never seeded".
+            band.mb_tags = [
+                {"name": n, "votes": v}
+                for n, v in sorted(tags, key=lambda x: -x[1])
+            ]
 
     app_session.commit()
     return stats

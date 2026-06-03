@@ -49,6 +49,41 @@ def client():
     Base.metadata.drop_all(bind=engine)
 
 
+@pytest.fixture(autouse=True)
+def _isolate_blacklist_file(tmp_path, monkeypatch):
+    # The delete endpoint and seed.mb_dump both consult seed/blacklist.json.
+    # Redirect every test to a per-test tmp path by default so nothing here
+    # mutates the checked-in file; tests that want to exercise file behavior
+    # override it locally with their own monkeypatch.setattr.
+    import seed.blacklist as bl
+
+    monkeypatch.setattr(bl, "BLACKLIST_PATH", tmp_path / "no-real-blacklist.json")
+
+
+@pytest.fixture()
+def app_session():
+    # Standalone app-schema SQLite session for tests that don't go through the
+    # FastAPI client (seed / blacklist tests). Mirrors the conftest engine setup
+    # — StaticPool + PRAGMA foreign_keys=ON — on its own per-test engine.
+    app_engine = create_engine(
+        "sqlite://", connect_args={"check_same_thread": False}, poolclass=StaticPool
+    )
+
+    @event.listens_for(app_engine, "connect")
+    def _enable_fks(dbapi_connection, _record):
+        cursor = dbapi_connection.cursor()
+        cursor.execute("PRAGMA foreign_keys=ON")
+        cursor.close()
+
+    Base.metadata.create_all(bind=app_engine)
+    Session = sessionmaker(bind=app_engine, expire_on_commit=False)
+    db = Session()
+    try:
+        yield db
+    finally:
+        db.close()
+
+
 @pytest.fixture()
 def db(client):
     # A session on the same in-memory engine for tests that need to seed rows

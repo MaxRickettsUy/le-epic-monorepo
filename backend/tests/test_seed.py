@@ -182,6 +182,27 @@ def test_seed_ignores_non_positive_vote_tags(mb_engine, app_session):
     ), "Bathory should not enter scope on a refuted (count=-1) hardcore-punk tag"
 
 
+def test_seed_sets_auto_flagged_from_allowlist(mb_engine, app_session, tmp_path, monkeypatch):
+    """`auto_flagged` is True iff the band has MB tag votes but none in `core`.
+
+    Uses a narrow custom allowlist (only `d-beat` is core) so the existing
+    fixture exercises both branches: Discharge has d-beat → unflagged;
+    Minor Threat and GauZe lack d-beat → flagged.
+    """
+    allowlist_file = tmp_path / "genre_allowlist.json"
+    allowlist_file.write_text('{"core": ["d-beat"], "ignore": []}')
+    import seed.genre_allowlist as al
+
+    monkeypatch.setattr(al, "ALLOWLIST_PATH", allowlist_file)
+
+    run_seed(mb_engine, app_session, tag="hardcore punk")
+
+    bands = {b.name: b for b in app_session.query(Band).all()}
+    assert bands["Discharge"].auto_flagged is False  # has d-beat:9
+    assert bands["Minor Threat"].auto_flagged is True  # only hardcore-punk + youth-crew + rock
+    assert bands["GauZe"].auto_flagged is True  # only the seed tag, which isn't core here
+
+
 def test_seed_purges_pre_fix_non_positive_genre_links(mb_engine, app_session):
     """One-shot heal of bad genre links the pre-fix seed wrote.
 

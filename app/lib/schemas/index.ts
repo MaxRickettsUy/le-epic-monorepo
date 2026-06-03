@@ -110,6 +110,14 @@ export const bandListItemSchema = bandBaseSchema;
  */
 export const needsReviewItemSchema = bandListItemSchema.extend({
   mb_tags: z.array(mbTagSchema).nullish(),
+  /**
+   * True when the seed's genre allowlist found MB tags on this band but none
+   * landed in the curated `core` set (see backend `seed/genre_allowlist`).
+   * Null on bands seeded before the column existed. Drives the off-genre
+   * badge on `/admin/needs-review`; does not currently hide the band from
+   * the public listing.
+   */
+  auto_flagged: z.boolean().nullish(),
 });
 
 /** Band detail response (`GET /band/{id}`). */

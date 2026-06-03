@@ -46,6 +46,12 @@ class Band(TimestampMixin, Base):
     seed_votes: so.Mapped[int | None] = so.mapped_column(sa.Integer())
     total_tag_votes: so.Mapped[int | None] = so.mapped_column(sa.Integer())
     seed_share: so.Mapped[float | None] = so.mapped_column(sa.Float())
+    # True when seed.mb_dump's allowlist rule found MB tags on this band but
+    # none of them are in the checked-in `core` set (see seed/genre_allowlist).
+    # Bands with no MB tag votes at all stay False — "no signal" is not the
+    # same as "off-genre signal". Surfaced on /band/needs-review as a badge;
+    # not used to hide bands from the public listing in this slice.
+    auto_flagged: so.Mapped[bool | None] = so.mapped_column(sa.Boolean(), index=True)
     # Full MB tag votes for this band, captured at seed time as a list of
     # {"name": str, "votes": int} dicts sorted by votes desc. Lets curators
     # inspect raw signal without re-querying the MB dump (the curated `genres`

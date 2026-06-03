@@ -146,6 +146,9 @@ class NeedsReviewItem(BandListItem):
     """
 
     mb_tags: list["MbTag"] | None = None
+    # True when the seed's genre allowlist found MB tags on this band but none
+    # in the curated `core` set. Null on bands seeded before the column existed.
+    auto_flagged: bool | None = None
 
 
 class BandList(BaseModel):

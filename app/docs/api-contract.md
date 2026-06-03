@@ -131,6 +131,7 @@ use `.nullish()`, accepting `null` and `undefined`.
 {
   ...BandListItem,
   mb_tags?: MbTag[];     // raw MB tag snapshot, votes desc; null = pre-seed, [] = MB has none
+  auto_flagged?: boolean; // true = MB tags present but none in seed/genre_allowlist `core`; null = pre-allowlist seed
 }
 ```
 

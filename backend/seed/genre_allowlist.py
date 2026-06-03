@@ -42,6 +42,20 @@ def load_allowlist(path: Path | None = None) -> GenreAllowlist:
     )
 
 
-def core_votes(tags: list[tuple[str, int]], allowlist: GenreAllowlist) -> int:
-    """Sum positive vote counts for tags that fall in the `core` set."""
-    return sum(votes for name, votes in tags if votes > 0 and name.lower() in allowlist.core)
+def core_votes(
+    tags: list[tuple[str, int]],
+    allowlist: GenreAllowlist,
+    exclude: frozenset[str] | set[str] | None = None,
+) -> int:
+    """Sum positive vote counts for tags that fall in the `core` set.
+
+    `exclude` is a set of lowercased tag names to skip — the seed scope tag
+    is passed here so it doesn't count as corroborating evidence of itself
+    (otherwise every seeded band trivially has core_votes > 0).
+    """
+    skip = {t.lower() for t in (exclude or ())}
+    return sum(
+        votes
+        for name, votes in tags
+        if votes > 0 and name.lower() in allowlist.core and name.lower() not in skip
+    )

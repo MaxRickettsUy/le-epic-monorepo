@@ -67,3 +67,20 @@ def test_core_votes_is_case_insensitive(tmp_path):
     al = load_allowlist(path)
 
     assert core_votes([("Hardcore Punk", 4)], al) == 4
+
+
+def test_core_votes_excludes_seed_tag(tmp_path):
+    path = tmp_path / "al.json"
+    path.write_text(json.dumps({"core": ["hardcore punk", "d-beat"]}))
+    al = load_allowlist(path)
+
+    tags = [("hardcore punk", 5), ("d-beat", 3)]
+
+    # Without exclude, both core tags count.
+    assert core_votes(tags, al) == 8
+    # Excluding the seed tag leaves only the corroborating d-beat votes.
+    assert core_votes(tags, al, exclude={"hardcore punk"}) == 3
+    # Case-insensitive on the exclude set too.
+    assert core_votes(tags, al, exclude={"Hardcore Punk"}) == 3
+    # A band tagged only with the seed tag has zero corroborating evidence.
+    assert core_votes([("hardcore punk", 5)], al, exclude={"hardcore punk"}) == 0

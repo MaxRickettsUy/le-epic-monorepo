@@ -327,10 +327,13 @@ def run_seed(mb_engine: Engine, app_session: Session, *, tag: str | None = None)
             band.total_tag_votes = total
             band.seed_share = (seed_votes / total) if total else None
             # Split rule: only flag when MB users *did* tag the band but with
-            # nothing in the core allowlist. Bands with no MB tags at all
-            # (total == 0) stay unflagged — "no signal" gets a different
-            # review surface, not an off-genre verdict.
-            band.auto_flagged = total > 0 and core_votes(tags, allowlist) == 0
+            # nothing in the core allowlist *besides the seed tag itself*. The
+            # seed tag is excluded because every seeded band has it by
+            # construction — counting it would make `core_votes == 0`
+            # unreachable. Bands with no MB tags at all (total == 0) stay
+            # unflagged — "no signal" gets a different review surface, not an
+            # off-genre verdict.
+            band.auto_flagged = total > 0 and core_votes(tags, allowlist, exclude={tag}) == 0
             # Snapshot the full tag list (votes desc) so curators can audit the
             # raw signal without the MB dump on hand. Empty list (not null) when
             # MB has no tags, so the UI can distinguish "seeded, no tags" from

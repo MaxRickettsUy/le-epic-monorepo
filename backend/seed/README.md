@@ -94,8 +94,13 @@ which upserts every JSON entry into `band_blacklist` *before* the artist rows
 are filtered. So:
 
 - **Delete endpoint also writes the file.** `DELETE /band/{id}/delete`
-  appends to `blacklist.json` (via `seed.blacklist.append_entry`, atomic
-  temp-file rename) in addition to writing the DB row. After deleting, just
+  appends to `blacklist.json` (via `seed.blacklist.append_entry`) in addition
+  to writing the DB row. `append_entry` rewrites the file in place
+  (truncate + rewrite) rather than via a tempfile+rename, so the file's inode
+  is preserved — important when `blacklist.json` is bind-mounted into the API
+  container, since Docker file-level bind-mounts pin the host inode at
+  container start and a swapped inode would silently drift the container's
+  view from the host. After deleting, just
   `git add seed/blacklist.json && git commit` — no separate copy-paste step.
   If the JSON write fails (e.g. read-only FS), the request still succeeds and
   the failure is logged.

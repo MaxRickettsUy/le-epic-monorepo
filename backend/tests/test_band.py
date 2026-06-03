@@ -83,6 +83,7 @@ def test_delete_blacklists_mbid_by_default(client, db):
 
     entry = db.get(BandBlacklist, "mt-gid")
     assert entry is not None
+    assert entry.name == "Minor Threat"
     assert entry.reason == "off-genre"
 
 
@@ -115,7 +116,9 @@ def test_delete_appends_to_blacklist_json(client, db, tmp_path, monkeypatch):
     band_id = _create_with_mbid(client, db, "mt-gid")
     res = client.request("DELETE", f"/band/{band_id}/delete", params={"reason": "off-genre"})
     assert res.status_code == 200
-    assert _json.loads(path.read_text()) == [{"mbid": "mt-gid", "reason": "off-genre"}]
+    assert _json.loads(path.read_text()) == [
+        {"mbid": "mt-gid", "name": "Minor Threat", "reason": "off-genre"}
+    ]
 
 
 def test_delete_blacklist_false_does_not_touch_json(client, db, tmp_path, monkeypatch):

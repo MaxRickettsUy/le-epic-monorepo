@@ -5,11 +5,9 @@ same queries that run against the full dump are exercised here in-process.
 """
 
 import pytest
-from sqlalchemy import create_engine, event, text
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy import create_engine, text
 from sqlalchemy.pool import StaticPool
 
-from app.database import Base
 from app.genres import CURATED_GENRES
 from app.models import Album, Band, BandBlacklist, BandGenre, BandMember, Genre, Member
 from seed import band_art, cover_art
@@ -38,8 +36,12 @@ MB_DATA = [
     "INSERT INTO area VALUES (1,'United States'),(2,'United Kingdom'),(3,'Japan')",
     # tag 1 is the scope tag; 3-5 are curated sub-genres (4 is an alias of 3);
     # 2 and 6 are non-curated and must be ignored.
+    # tag 6 ('rock') stands in for any tag that isn't in CURATED_GENRES — the
+    # earlier 'emo' choice got absorbed when the vocabulary expanded, so picking
+    # a clearly out-of-scope label keeps the "non-curated tags drop" assertion
+    # honest even as the vocabulary grows.
     "INSERT INTO tag VALUES "
-    "(1,'hardcore punk'),(2,'indie'),(3,'youth crew'),(4,'youthcrew'),(5,'d-beat'),(6,'emo')",
+    "(1,'hardcore punk'),(2,'indie'),(3,'youth crew'),(4,'youthcrew'),(5,'d-beat'),(6,'rock')",
     # Bands: Minor Threat (US, split-up), Discharge (UK, active), GauZe (JP),
     # plus an off-genre band that must be excluded.
     "INSERT INTO artist VALUES "
@@ -52,7 +54,7 @@ MB_DATA = [
     "(21,'cal-gid','Cal Morris',2,0,NULL,NULL)",
     "INSERT INTO artist_tag VALUES (10,1,5),(11,1,3),(12,1,2),(99,2,4),"
     # Sub-genre tags: Minor Threat -> youth crew (votes 7) + the 'youthcrew'
-    # alias (votes 3, same genre) + 'emo' (non-curated). Discharge -> d-beat.
+    # alias (votes 3, same genre) + 'rock' (non-curated). Discharge -> d-beat.
     # GauZe gets none. Indie Co (99) is off-genre and not seeded at all.
     "(10,3,7),(10,4,3),(10,6,2),(11,5,9)",
     # artist_credit ids reuse the artist id + 100 for clarity.
@@ -89,26 +91,6 @@ def mb_engine():
         for stmt in MB_DATA:
             conn.execute(text(stmt))
     return engine
-
-
-@pytest.fixture()
-def app_session():
-    engine = create_engine(
-        "sqlite://", connect_args={"check_same_thread": False}, poolclass=StaticPool
-    )
-
-    @event.listens_for(engine, "connect")
-    def _enable_sqlite_fks(dbapi_connection, _record):
-        # SQLite ignores FK constraints unless told otherwise.
-        cursor = dbapi_connection.cursor()
-        cursor.execute("PRAGMA foreign_keys=ON")
-        cursor.close()
-
-    Base.metadata.create_all(bind=engine)
-    Session = sessionmaker(bind=engine, expire_on_commit=False)
-    db = Session()
-    yield db
-    db.close()
 
 
 def test_seed_populates_bands_albums_members(mb_engine, app_session):
@@ -158,7 +140,7 @@ def test_seed_links_curated_subgenres(mb_engine, app_session):
     # The whole curated vocabulary is upserted regardless of usage.
     assert app_session.query(Genre).count() == len(CURATED_GENRES)
 
-    # Minor Threat -> youth-crew (the 'youthcrew' alias collapses in, 'emo' is
+    # Minor Threat -> youth-crew (the 'youthcrew' alias collapses in, 'rock' is
     # dropped); Discharge -> d-beat; GauZe -> nothing.
     bands = {b.name: b for b in app_session.query(Band).all()}
     mt_genres = {g.slug: g.vote_count for g in bands["Minor Threat"].genres}

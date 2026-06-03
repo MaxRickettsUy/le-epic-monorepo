@@ -30,8 +30,14 @@ export const DeleteBandSection = ({ bandId, bandName }: { bandId: number; bandNa
           reason: reason.trim() || null,
         });
       } catch (e) {
-        // Server actions throw a special redirect error on success; ignore it.
-        if (e instanceof Error && e.message === "NEXT_REDIRECT") return;
+        // Server actions throw a special redirect error on success — Next.js
+        // marks it via the `digest` field, which is the documented contract
+        // (the `.message` text isn't stable across versions).
+        const digest =
+          e instanceof Error ? (e as unknown as { digest?: unknown }).digest : undefined;
+        if (typeof digest === "string" && digest.startsWith("NEXT_REDIRECT")) {
+          return;
+        }
         setError(e instanceof Error ? e.message : "Delete failed");
       }
     });
@@ -68,8 +74,8 @@ export const DeleteBandSection = ({ bandId, bandName }: { bandId: number; bandNa
           <DialogHeader>
             <DialogTitle>Delete {bandName}?</DialogTitle>
             <DialogDescription>
-              Permanently removes the band, its albums, tracks, and member links. This
-              can&rsquo;t be undone.
+              Permanently removes the band, its albums, tracks, and member links. This can&rsquo;t
+              be undone.
             </DialogDescription>
           </DialogHeader>
 
@@ -110,12 +116,7 @@ export const DeleteBandSection = ({ bandId, bandName }: { bandId: number; bandNa
             >
               Cancel
             </Button>
-            <Button
-              type="button"
-              variant="destructive"
-              onClick={onDelete}
-              disabled={isPending}
-            >
+            <Button type="button" variant="destructive" onClick={onDelete} disabled={isPending}>
               {isPending ? "Deleting…" : "Confirm delete"}
             </Button>
           </DialogFooter>

@@ -5,8 +5,9 @@
 checked-in source of truth, a fresh DB (or a second environment) would
 re-import every off-genre band the curator already removed.
 
-`blacklist.json` is that source of truth: a list of `{mbid, reason}` records
-that `seed.mb_dump` upserts into `band_blacklist` at the top of every run.
+`blacklist.json` is that source of truth: a list of `{mbid, name, reason}`
+records (name and reason both optional) that `seed.mb_dump` upserts into
+`band_blacklist` at the top of every run.
 The DB table is still the runtime authority (and what the seeder filters
 against), but the JSON guarantees the table is at least as broad as the
 checked-in decisions whenever a re-seed happens.
@@ -56,22 +57,24 @@ def load_blacklist(path: Path | None = None) -> list[dict]:
 def apply_blacklist(session: Session, path: Path | None = None) -> dict:
     """Upsert the checked-in blacklist into `band_blacklist`.
 
-    Idempotent: existing rows have their `reason` refreshed from the file
-    (file wins on conflict, since it's the source of truth); new rows are
-    inserted. Does NOT delete rows the file no longer mentions — entries
-    added directly via the delete endpoint stay put.
+    Idempotent: existing rows have their `name` and `reason` refreshed from
+    the file (file wins on conflict, since it's the source of truth); new
+    rows are inserted. Does NOT delete rows the file no longer mentions —
+    entries added directly via the delete endpoint stay put.
     """
     entries = load_blacklist(path)
     inserted = 0
     updated = 0
     for entry in entries:
         mbid = entry["mbid"]
+        name = entry.get("name")
         reason = entry.get("reason")
         row = session.get(BandBlacklist, mbid)
         if row is None:
-            session.add(BandBlacklist(mbid=mbid, reason=reason))
+            session.add(BandBlacklist(mbid=mbid, name=name, reason=reason))
             inserted += 1
-        elif row.reason != reason:
+        elif row.name != name or row.reason != reason:
+            row.name = name
             row.reason = reason
             updated += 1
     session.flush()
@@ -81,12 +84,19 @@ def apply_blacklist(session: Session, path: Path | None = None) -> dict:
     return stats
 
 
-def append_entry(mbid: str, reason: str | None, path: Path | None = None) -> str:
+def append_entry(
+    mbid: str,
+    name: str | None,
+    reason: str | None,
+    path: Path | None = None,
+) -> str:
     """Add (or refresh) one entry in `blacklist.json`. Returns the action taken.
 
     - `"added"`     — mbid was new; appended at the end.
-    - `"updated"`   — mbid was present with a different reason; reason replaced.
-    - `"unchanged"` — mbid was present with the same reason; file untouched.
+    - `"updated"`   — mbid was present with a different name or reason; the
+                     differing field(s) replaced.
+    - `"unchanged"` — mbid was present with the same name and reason; file
+                     untouched.
 
     Writes happen in place (truncate + rewrite) so the file's inode is
     preserved. This matters when blacklist.json is bind-mounted into the API
@@ -108,13 +118,22 @@ def append_entry(mbid: str, reason: str | None, path: Path | None = None) -> str
     action = "added"
     for entry in entries:
         if entry["mbid"] == mbid:
-            if entry.get("reason") == reason:
+            if entry.get("name") == name and entry.get("reason") == reason:
                 return "unchanged"
-            entry["reason"] = reason
+            # Rewrite in canonical key order (mbid, name, reason) and drop
+            # keys whose value is None so the file stays terse for curators.
+            entry.clear()
+            entry["mbid"] = mbid
+            if name is not None:
+                entry["name"] = name
+            if reason is not None:
+                entry["reason"] = reason
             action = "updated"
             break
     else:
-        new = {"mbid": mbid}
+        new: dict = {"mbid": mbid}
+        if name is not None:
+            new["name"] = name
         if reason is not None:
             new["reason"] = reason
         entries.append(new)

@@ -285,25 +285,31 @@ def delete(
     band = db.get(Band, id)
     if band is None:
         raise HTTPException(status_code=404, detail="Band not found")
-    mbid_to_append = None
+    to_append: tuple[str, str, str | None] | None = None
     if blacklist and band.mbid:
         entry = db.get(BandBlacklist, band.mbid)
         if entry is None:
-            db.add(BandBlacklist(mbid=band.mbid, reason=reason))
-        elif reason is not None:
-            entry.reason = reason
-        mbid_to_append = band.mbid
+            db.add(BandBlacklist(mbid=band.mbid, name=band.name, reason=reason))
+        else:
+            # The name on disk may pre-date a band rename — refresh from the
+            # current row, which the curator just confirmed via the UI.
+            entry.name = band.name
+            if reason is not None:
+                entry.reason = reason
+        to_append = (band.mbid, band.name, reason)
     db.delete(band)
     db.commit()
     # Mirror the decision into the checked-in JSON so it survives DB resets and
     # is portable to other environments. The DB row is the authority — failing
     # to update the file is a "you forgot to commit" reminder, not a request
     # failure — so we log and move on.
-    if mbid_to_append is not None:
+    if to_append is not None:
+        mbid, name, append_reason = to_append
         try:
-            append_blacklist_entry(mbid_to_append, reason)
-        except OSError as e:
-            logger.warning(
-                "blacklist.json write failed for mbid=%s: %s", mbid_to_append, e
-            )
+            append_blacklist_entry(mbid, name, append_reason)
+        except (OSError, ValueError) as e:
+            # ValueError covers a corrupt/non-list blacklist.json (load_blacklist
+            # validates its shape before we append) — still just a "you forgot
+            # to commit"-class reminder, not a request failure.
+            logger.warning("blacklist.json write failed for mbid=%s: %s", mbid, e)
     return "band deleted"

@@ -186,6 +186,10 @@ class BandBlacklist(TimestampMixin, Base):
     __tablename__ = "band_blacklist"
 
     mbid: so.Mapped[str] = so.mapped_column(sa.String(36), primary_key=True)
+    # Captured at delete time so the JSON / table is human-scannable without
+    # round-tripping through MusicBrainz. Not authoritative — the band row it
+    # was copied from is gone by the time this is set.
+    name: so.Mapped[str | None] = so.mapped_column(sa.Text())
     reason: so.Mapped[str | None] = so.mapped_column(sa.Text())
 
 

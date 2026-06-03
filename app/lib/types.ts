@@ -6,6 +6,7 @@ export type {
   BandStatus,
   Member,
   Genre,
+  MbTag,
   Track,
   Release,
   BandSummary,

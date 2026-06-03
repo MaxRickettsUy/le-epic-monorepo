@@ -143,9 +143,20 @@ class CountryCount(BaseModel):
     count: int
 
 
+class MbTag(BaseModel):
+    """One MusicBrainz tag vote captured at seed time."""
+
+    name: str
+    votes: int
+
+
 class BandDetail(BandBase):
     members: list[Member] = []
     releases: list[ReleaseInBand] = []
+    # Full MB tag snapshot, votes desc. Null on bands that pre-date the
+    # snapshot column; empty list on bands MB has no tags for. Detail-only —
+    # the list endpoint stays lean.
+    mb_tags: list[MbTag] | None = None
 
 
 class SimilarBand(ORMModel):

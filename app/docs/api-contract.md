@@ -141,7 +141,14 @@ display label (e.g. `NYHC`).
   ...BandBase,
   members: Member[];     // always [] in MVP
   releases: Release[];   // releases nested under the band (no band back-ref)
+  mb_tags?: MbTag[];     // full MB tag snapshot, votes desc; null = pre-seed, [] = MB has none
 }
+```
+
+### `MbTag`
+
+```json
+{ name: string; votes: number; }
 ```
 
 ### `Member`

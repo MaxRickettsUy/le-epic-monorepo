@@ -46,6 +46,11 @@ class Band(TimestampMixin, Base):
     seed_votes: so.Mapped[int | None] = so.mapped_column(sa.Integer())
     total_tag_votes: so.Mapped[int | None] = so.mapped_column(sa.Integer())
     seed_share: so.Mapped[float | None] = so.mapped_column(sa.Float())
+    # Full MB tag votes for this band, captured at seed time as a list of
+    # {"name": str, "votes": int} dicts sorted by votes desc. Lets curators
+    # inspect raw signal without re-querying the MB dump (the curated `genres`
+    # relation only keeps tags that map to the curated vocabulary).
+    mb_tags: so.Mapped[list[dict] | None] = so.mapped_column(sa.JSON())
 
     # Attribute kept as `releases` so the API/JSON shape is unchanged even
     # though the underlying model/table is now Album.

@@ -302,12 +302,19 @@ def run_seed(mb_engine: Engine, app_session: Session, *, tag: str | None = None)
         # so /band/needs-review can rank candidate outliers without touching
         # the MB dump. Bands with no tag rows get zeros / a null share.
         for mb_artist_id, band in band_by_mb_id.items():
-            seed_votes, total, _other = summarize_tags(
-                tags_by_artist.get(mb_artist_id, []), tag
-            )
+            tags = tags_by_artist.get(mb_artist_id, [])
+            seed_votes, total, _other = summarize_tags(tags, tag)
             band.seed_votes = seed_votes
             band.total_tag_votes = total
             band.seed_share = (seed_votes / total) if total else None
+            # Snapshot the full tag list (votes desc) so curators can audit the
+            # raw signal without the MB dump on hand. Empty list (not null) when
+            # MB has no tags, so the UI can distinguish "seeded, no tags" from
+            # "never seeded".
+            band.mb_tags = [
+                {"name": n, "votes": v}
+                for n, v in sorted(tags, key=lambda x: -x[1])
+            ]
 
     app_session.commit()
     return stats

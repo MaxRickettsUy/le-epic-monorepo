@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { getBand, getSimilarBands } from "@/lib/api";
 import { DiscographyTable } from "./discog";
 import { MemberTable } from "./members";
+import { MbTagsTable } from "./mb-tags";
 import { SimilarArtistsTable } from "./similar";
 import { Header } from "@/components/ui/header";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -53,6 +54,7 @@ export default async function BandPage({ params }: PageProps) {
             <TabsTrigger value="discography">Discography</TabsTrigger>
             <TabsTrigger value="members">Members</TabsTrigger>
             <TabsTrigger value="similar">Similar Artists</TabsTrigger>
+            <TabsTrigger value="mb-tags">MB Tags</TabsTrigger>
           </TabsList>
           <TabsContent className="w-full" value="discography">
             <DiscographyTable releases={releases} />
@@ -62,6 +64,14 @@ export default async function BandPage({ params }: PageProps) {
           </TabsContent>
           <TabsContent className="w-full" value="similar">
             <SimilarArtistsTable bands={similar} />
+          </TabsContent>
+          <TabsContent className="w-full" value="mb-tags">
+            <MbTagsTable
+              tags={band.mb_tags}
+              seedVotes={band.seed_votes}
+              totalVotes={band.total_tag_votes}
+              seedShare={band.seed_share}
+            />
           </TabsContent>
         </Tabs>
       </div>

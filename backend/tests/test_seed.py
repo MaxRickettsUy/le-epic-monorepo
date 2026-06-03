@@ -153,6 +153,55 @@ def test_seed_links_curated_subgenres(mb_engine, app_session):
     assert app_session.query(BandGenre).count() == 2
 
 
+def test_seed_ignores_non_positive_vote_tags(mb_engine, app_session):
+    """MB tag counts <= 0 are community refutations and must not pull a band
+    into scope or create a sub-genre link.
+
+    Reproduces the Bathory case: a band whose only `hardcore punk` vote is -1
+    (and whose only mapped sub-genre alias is also at -1) must not appear in
+    the catalogue.
+    """
+    with mb_engine.begin() as conn:
+        # Off-genre artist with a refuted scope tag and a refuted sub-genre tag.
+        # Mirrors Bathory: hardcore punk(-1), oi(-1) on a metal band.
+        conn.execute(
+            text(
+                "INSERT INTO artist VALUES (50,'bath-gid','Bathory',1,1,1983,2004)"
+            )
+        )
+        conn.execute(text("INSERT INTO tag VALUES (7,'oi')"))
+        # count=-1 (refuted scope), count=-1 (refuted sub-genre alias).
+        conn.execute(
+            text("INSERT INTO artist_tag VALUES (50,1,-1),(50,7,-1)")
+        )
+
+    run_seed(mb_engine, app_session, tag="hardcore punk")
+
+    assert (
+        app_session.query(Band).filter(Band.name == "Bathory").count() == 0
+    ), "Bathory should not enter scope on a refuted (count=-1) hardcore-punk tag"
+
+
+def test_seed_purges_pre_fix_non_positive_genre_links(mb_engine, app_session):
+    """One-shot heal of bad genre links the pre-fix seed wrote.
+
+    Bands seeded before the count > 0 filter could carry BandGenre rows with
+    vote_count <= 0 (e.g. Bathory's `oi`=-1). The current seed purges them.
+    """
+    run_seed(mb_engine, app_session, tag="hardcore punk")
+    mt = app_session.query(Band).filter(Band.name == "Minor Threat").one()
+    oi_genre = app_session.query(Genre).filter(Genre.slug == "oi").one()
+    # Simulate the pre-fix artifact: a negative-vote link.
+    app_session.add(BandGenre(band=mt, genre=oi_genre, vote_count=-1))
+    app_session.commit()
+    assert app_session.query(BandGenre).filter(BandGenre.vote_count <= 0).count() == 1
+
+    run_seed(mb_engine, app_session, tag="hardcore punk")
+
+    assert app_session.query(BandGenre).filter(BandGenre.vote_count <= 0).count() == 0
+    assert "oi" not in {g.genre.slug for g in mt.genres}
+
+
 def test_seed_subgenres_idempotent(mb_engine, app_session):
     run_seed(mb_engine, app_session, tag="hardcore punk")
     stats2 = run_seed(mb_engine, app_session, tag="hardcore punk")

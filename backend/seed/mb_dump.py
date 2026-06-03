@@ -51,7 +51,7 @@ _ARTIST_SQL = text(
     JOIN artist_tag atag ON atag.artist = a.id
     JOIN tag t ON t.id = atag.tag
     LEFT JOIN area ar ON ar.id = a.area
-    WHERE t.name = :tag
+    WHERE t.name = :tag AND atag.count > 0
     """
 )
 
@@ -82,13 +82,16 @@ _MEMBER_SQL = text(
     """
 ).bindparams(bindparam("band_ids", expanding=True))
 
-# All tags on the in-scope artists; mapped to curated sub-genres in run_seed.
+# All *positively-voted* tags on the in-scope artists; mapped to curated
+# sub-genres in run_seed. MB tag counts can be negative (downvoted to refute
+# the tag, e.g. Bathory's "hardcore punk"=-1 / "oi"=-1) or zero — treating
+# those as present links bands to genres the community has explicitly rejected.
 _ARTIST_TAGS_SQL = text(
     """
     SELECT atag.artist AS artist_id, t.name AS tag_name, atag.count AS votes
     FROM artist_tag atag
     JOIN tag t ON t.id = atag.tag
-    WHERE atag.artist IN :artist_ids
+    WHERE atag.artist IN :artist_ids AND atag.count > 0
     """
 ).bindparams(bindparam("artist_ids", expanding=True))
 
@@ -272,6 +275,20 @@ def run_seed(mb_engine: Engine, app_session: Session, *, tag: str | None = None)
             tags_by_artist.setdefault(row["artist_id"], []).append(
                 (row["tag_name"], int(row["votes"] or 0))
             )
+
+        # One-shot heal of bad rows the pre-fix seed wrote: any link whose
+        # vote_count is non-positive came from a downvoted MB tag (e.g.
+        # Bathory's "oi"=-1). The current SQL filters those out at source, so
+        # we'll never recreate them — drop them here so the public band page
+        # stops surfacing community-refuted sub-genres.
+        bad_link_count = (
+            app_session.query(BandGenre)
+            .filter(BandGenre.vote_count <= 0)
+            .delete(synchronize_session=False)
+        )
+        if bad_link_count:
+            logger.info("Purged %d non-positive-vote genre links", bad_link_count)
+        app_session.flush()
 
         existing_genre_links = {
             (bg.band_id, bg.genre_id): bg for bg in app_session.query(BandGenre)

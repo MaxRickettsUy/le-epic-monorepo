@@ -121,6 +121,37 @@ def test_delete_appends_to_blacklist_json(client, db, tmp_path, monkeypatch):
     ]
 
 
+def test_redelete_without_reason_keeps_existing_reason(client, db, tmp_path, monkeypatch):
+    """A re-delete without ?reason= must NOT strip the reason from the JSON or DB.
+
+    Reproduces the bug where the second delete passed reason=None into
+    `append_entry`, which rewrote the entry and dropped the reason key
+    because None values are skipped on write.
+    """
+    import json as _json
+
+    import seed.blacklist as bl
+
+    path = tmp_path / "blacklist.json"
+    monkeypatch.setattr(bl, "BLACKLIST_PATH", path)
+
+    # First delete establishes the reason on both DB and JSON.
+    band_id = _create_with_mbid(client, db, "mt-gid")
+    client.request("DELETE", f"/band/{band_id}/delete", params={"reason": "off-genre"})
+
+    # Simulate a re-seed bringing the same MBID back, then re-delete without reason.
+    band_id2 = _create_with_mbid(client, db, "mt-gid")
+    res = client.request("DELETE", f"/band/{band_id2}/delete")
+    assert res.status_code == 200
+
+    from app.models import BandBlacklist
+
+    assert db.get(BandBlacklist, "mt-gid").reason == "off-genre"
+    assert _json.loads(path.read_text()) == [
+        {"mbid": "mt-gid", "name": "Minor Threat", "reason": "off-genre"}
+    ]
+
+
 def test_delete_blacklist_false_does_not_touch_json(client, db, tmp_path, monkeypatch):
     import seed.blacklist as bl
 

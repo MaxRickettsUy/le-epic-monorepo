@@ -290,13 +290,17 @@ def delete(
         entry = db.get(BandBlacklist, band.mbid)
         if entry is None:
             db.add(BandBlacklist(mbid=band.mbid, name=band.name, reason=reason))
+            effective_reason = reason
         else:
             # The name on disk may pre-date a band rename — refresh from the
             # current row, which the curator just confirmed via the UI.
             entry.name = band.name
             if reason is not None:
                 entry.reason = reason
-        to_append = (band.mbid, band.name, reason)
+            # Mirror the DB state to the JSON: a re-delete without ?reason=
+            # must NOT strip the existing reason from the file.
+            effective_reason = reason if reason is not None else entry.reason
+        to_append = (band.mbid, band.name, effective_reason)
     db.delete(band)
     db.commit()
     # Mirror the decision into the checked-in JSON so it survives DB resets and

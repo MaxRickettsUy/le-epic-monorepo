@@ -21,6 +21,15 @@ logger = logging.getLogger(__name__)
 # the per-factor contributions are returned on each result so the effect of a
 # change is visible in the UI. (MusicBrainz artist relations would be a natural
 # extra signal but aren't stored; that needs new modelling + seed work first.)
+# Auto-flagged bands the seed's allowlist judged off-genre are hidden from the
+# public listing/facets/similar until a curator allowlists them via
+# `POST /band/{id}/allowlist` (which clears the flag and sets `allowlisted_at`).
+# Detail (`GET /band/{id}`) intentionally still resolves so the review queue
+# can deep-link into a flagged band.
+def _is_visible() -> sa.ColumnElement[bool]:
+    return sa.or_(Band.auto_flagged.is_(None), Band.auto_flagged.is_(False))
+
+
 SIMILARITY_WEIGHTS = {
     "shared_member": 5,  # per member the two bands have in common
     "location": 4,  # same local scene
@@ -49,7 +58,7 @@ def get_all(
 
     # Build the facet filters once and apply them to both the count and the page
     # query, so pagination's `next` reflects the filtered total — not the catalogue.
-    filters = []
+    filters = [_is_visible()]
     if genre is not None:
         filters.append(Band.genres.any(BandGenre.genre.has(Genre.slug == genre)))
     if country is not None:
@@ -94,21 +103,32 @@ def get_all(
 def needs_review(
     include_resolved: bool = Query(
         False,
-        description="If true, include bands that already have an inclusion_reason set.",
+        description="If true, include bands a curator has already allowlisted.",
     ),
     limit: int = Query(50, ge=1, le=200),
     db: Session = Depends(get_db),
 ):
-    """Top candidates for off-genre review, lowest seed-share first.
+    """Auto-flagged bands awaiting curator review, lowest seed-share first.
 
-    Ranks by `seed_share` ascending (lowest = MB users tag it as something
-    else more strongly than the seed tag). Bands with `total_tag_votes == 0`
-    sink to the bottom — no MB signal to argue with. By default hides bands
-    a curator has already addressed (i.e. `inclusion_reason` is set).
+    The seed sets `auto_flagged = True` on bands whose MB tags don't include
+    any in-scope ("core") allowlisted tag. Those bands are hidden from the
+    public listing until a curator either deletes them (blacklist) or
+    allowlists them (`POST /band/{id}/allowlist`, which clears the flag and
+    stamps `allowlisted_at`).
+
+    Default queue = `auto_flagged IS TRUE AND allowlisted_at IS NULL`.
+    `include_resolved=true` widens it to previously-allowlisted bands so a
+    curator can undo. Ranks by `seed_share` ascending (lowest first).
     """
     stmt = sa.select(Band).options(selectinload(Band.genres).selectinload(BandGenre.genre))
-    if not include_resolved:
-        stmt = stmt.where(Band.inclusion_reason.is_(None))
+    if include_resolved:
+        # Currently-flagged or previously allowlisted (auto_flagged is cleared
+        # on allowlist, so we look at the stamp to recover those rows).
+        stmt = stmt.where(
+            sa.or_(Band.auto_flagged.is_(True), Band.allowlisted_at.is_not(None))
+        )
+    else:
+        stmt = stmt.where(Band.auto_flagged.is_(True), Band.allowlisted_at.is_(None))
     stmt = stmt.order_by(
         # Nulls last: bands with no audit data come after those we can rank.
         sa.case((Band.seed_share.is_(None), 1), else_=0).asc(),
@@ -126,6 +146,7 @@ def list_countries(db: Session = Depends(get_db)):
     column, so values are whatever was seeded (no normalization)."""
     rows = db.execute(
         sa.select(Band.country, sa.func.count().label("count"))
+        .where(_is_visible())
         .group_by(Band.country)
         .order_by(sa.func.count().desc(), Band.country.asc())
     ).all()
@@ -229,7 +250,7 @@ def get_similar(id: int, db: Session = Depends(get_db)):
             same_country.label("same_country"),
             score.label("score"),
         )
-        .where(Band.id != band.id, score > 0)
+        .where(Band.id != band.id, score > 0, _is_visible())
         .order_by(score.desc(), Band.name)
         .limit(settings.bands_per_page)
     ).all()
@@ -260,6 +281,23 @@ def update(id: int, payload: schemas.BandCreate, db: Session = Depends(get_db)):
         setattr(band, field, value)
     db.commit()
     return "band updated"
+
+
+@router.post("/{id}/allowlist")
+def allowlist(id: int, db: Session = Depends(get_db)):
+    """Curator override: vouch for an auto-flagged band.
+
+    Clears `auto_flagged` and stamps `allowlisted_at`. The timestamp is the
+    sticky signal — `seed.mb_dump` skips re-flagging when it's set, so this
+    decision survives re-seeds.
+    """
+    band = db.get(Band, id)
+    if band is None:
+        raise HTTPException(status_code=404, detail="Band not found")
+    band.auto_flagged = False
+    band.allowlisted_at = sa.func.now()
+    db.commit()
+    return {"message": "Band allowlisted", "id": band.id}
 
 
 @router.delete("/{id}/delete")

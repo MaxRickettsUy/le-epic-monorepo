@@ -52,6 +52,10 @@ class Band(TimestampMixin, Base):
     # same as "off-genre signal". Surfaced on /band/needs-review as a badge;
     # not used to hide bands from the public listing in this slice.
     auto_flagged: so.Mapped[bool | None] = so.mapped_column(sa.Boolean(), index=True)
+    # Sticky curator override. When set, seed.mb_dump leaves `auto_flagged`
+    # alone so a band a human has vouched for doesn't get re-flagged on every
+    # re-seed. NULL = never reviewed.
+    allowlisted_at: so.Mapped[datetime | None] = so.mapped_column(sa.DateTime(timezone=True))
     # Full MB tag votes for this band, captured at seed time as a list of
     # {"name": str, "votes": int} dicts sorted by votes desc. Lets curators
     # inspect raw signal without re-querying the MB dump (the curated `genres`

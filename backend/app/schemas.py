@@ -5,6 +5,8 @@ MVP, so `avg_review`/`review_count` are always 0 and `members` is always []
 (the `Member` table arrives in Phase 3).
 """
 
+from datetime import datetime
+
 from pydantic import BaseModel, ConfigDict, computed_field
 
 
@@ -149,6 +151,9 @@ class NeedsReviewItem(BandListItem):
     # True when the seed's genre allowlist found MB tags on this band but none
     # in the curated `core` set. Null on bands seeded before the column existed.
     auto_flagged: bool | None = None
+    # Set when a curator allowlisted this band; null = never reviewed. The
+    # needs-review queue hides allowlisted bands by default.
+    allowlisted_at: datetime | None = None
 
 
 class BandList(BaseModel):

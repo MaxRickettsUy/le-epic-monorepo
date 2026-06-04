@@ -344,3 +344,30 @@ def test_band_art_only_fills_missing_fields(mb_engine, app_session):
     assert bands["Minor Threat"].logo == band_art.commons_url("Q123-logo.svg")
     assert bands["Discharge"].band_picture == band_art.commons_url("Q456-first.jpg")
     assert bands["Discharge"].logo == band_art.commons_url("Q456-logo.svg")
+
+
+def test_seed_respects_allowlisted_sticky_flag(mb_engine, app_session, tmp_path, monkeypatch):
+    """A band a curator allowlisted is never re-flagged, even if its tags say off-genre."""
+    from datetime import datetime, timezone
+
+    allowlist_file = tmp_path / "genre_allowlist.json"
+    allowlist_file.write_text('{"core": ["d-beat"], "ignore": []}')
+    import seed.genre_allowlist as al
+
+    monkeypatch.setattr(al, "ALLOWLIST_PATH", allowlist_file)
+
+    # First run — Minor Threat is flagged as expected.
+    run_seed(mb_engine, app_session, tag="hardcore punk")
+    mt = app_session.query(Band).filter(Band.name == "Minor Threat").one()
+    assert mt.auto_flagged is True
+
+    # Curator allowlists it.
+    mt.auto_flagged = False
+    mt.allowlisted_at = datetime.now(timezone.utc)
+    app_session.commit()
+
+    # Re-seed: verdict stays the curator's, raw signal columns still refresh.
+    run_seed(mb_engine, app_session, tag="hardcore punk")
+    app_session.expire(mt)
+    assert mt.auto_flagged is False
+    assert mt.allowlisted_at is not None

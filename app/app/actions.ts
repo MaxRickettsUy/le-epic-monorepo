@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import {
+  allowlistBand,
   createBand,
   updateBand,
   deleteBand,
@@ -24,6 +25,13 @@ export async function updateBandAction(id: number, input: BandCreateInput) {
   revalidatePath("/");
   revalidatePath(`/band/${id}`);
   redirect(`/band/${id}`);
+}
+
+export async function allowlistBandAction(id: number) {
+  await allowlistBand(id);
+  revalidatePath("/");
+  revalidatePath("/admin/needs-review");
+  revalidatePath(`/band/${id}`);
 }
 
 export async function deleteBandAction(id: number, options: DeleteBandOptions = {}) {

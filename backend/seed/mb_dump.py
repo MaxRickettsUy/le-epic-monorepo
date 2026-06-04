@@ -333,7 +333,14 @@ def run_seed(mb_engine: Engine, app_session: Session, *, tag: str | None = None)
             # unreachable. Bands with no MB tags at all (total == 0) stay
             # unflagged — "no signal" gets a different review surface, not an
             # off-genre verdict.
-            band.auto_flagged = total > 0 and core_votes(tags, allowlist, exclude={tag}) == 0
+            # Sticky: once a curator has allowlisted a band, never re-flag it
+            # here. The seed still refreshes the raw signal columns above so
+            # the audit data stays current, but the verdict belongs to the
+            # human.
+            if band.allowlisted_at is None:
+                band.auto_flagged = (
+                    total > 0 and core_votes(tags, allowlist, exclude={tag}) == 0
+                )
             # Snapshot the full tag list (votes desc) so curators can audit the
             # raw signal without the MB dump on hand. Empty list (not null) when
             # MB has no tags, so the UI can distinguish "seeded, no tags" from

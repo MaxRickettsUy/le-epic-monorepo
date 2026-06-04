@@ -71,7 +71,7 @@ export function listCountries(): Promise<CountryCount[]> {
 /**
  * Top candidates for off-genre review (`GET /band/needs-review`), lowest
  * seed-share first. Pass `includeResolved` to also surface bands a curator
- * has already addressed (i.e. with an `inclusion_reason` set).
+ * has already allowlisted (so the curator can undo).
  */
 export function listNeedsReview(
   options: { includeResolved?: boolean; limit?: number } = {},
@@ -106,6 +106,16 @@ export function createBand(input: BandCreateInput): Promise<MutationResult> {
   return apiFetch(`/band/new`, mutationResultSchema, {
     method: "POST",
     body: JSON.stringify(input),
+  });
+}
+
+/**
+ * Vouch for an auto-flagged band (`POST /band/{id}/allowlist`). Clears the
+ * flag and stamps `allowlisted_at` so the seed won't re-flag it.
+ */
+export function allowlistBand(id: number): Promise<MutationResult> {
+  return apiFetch(`/band/${id}/allowlist`, mutationResultSchema, {
+    method: "POST",
   });
 }
 

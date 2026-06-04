@@ -32,14 +32,18 @@ def load_allowlist(path: Path | None = None) -> GenreAllowlist:
     """Read the checked-in allowlist file. Tag names are lowercased."""
     if path is None:
         path = ALLOWLIST_PATH
-    with path.open() as f:
+    with path.open(encoding="utf-8") as f:
         data = json.load(f)
     if not isinstance(data, dict):
         raise ValueError(f"{path}: expected a JSON object, got {type(data).__name__}")
-    return GenreAllowlist(
-        core=frozenset(t.lower() for t in data.get("core", [])),
-        ignore=frozenset(t.lower() for t in data.get("ignore", [])),
-    )
+
+    def _tag_set(key: str) -> frozenset[str]:
+        values = data.get(key, [])
+        if not isinstance(values, list) or not all(isinstance(t, str) for t in values):
+            raise ValueError(f"{path}: '{key}' must be a list of strings")
+        return frozenset(t.lower() for t in values)
+
+    return GenreAllowlist(core=_tag_set("core"), ignore=_tag_set("ignore"))
 
 
 def core_votes(

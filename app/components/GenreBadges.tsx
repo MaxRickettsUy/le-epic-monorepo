@@ -25,8 +25,9 @@ export const GenreBadges = ({
 }) => {
   const shown = limit !== undefined ? genres.slice(0, limit) : genres;
   if (shown.length === 0) return null;
+  const Wrapper = asLinks ? "div" : "span";
   return (
-    <div className={className ?? "flex flex-wrap gap-1.5"}>
+    <Wrapper className={className ?? "flex flex-wrap gap-1.5"}>
       {shown.map((g) =>
         asLinks ? (
           <Link key={g.slug} href={`/bands?genre=${encodeURIComponent(g.slug)}`}>
@@ -40,6 +41,6 @@ export const GenreBadges = ({
           </Badge>
         ),
       )}
-    </div>
+    </Wrapper>
   );
 };

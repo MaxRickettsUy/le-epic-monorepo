@@ -347,3 +347,8 @@ def test_allowlist_endpoint_clears_flag_and_stamps(client, db):
 
 def test_allowlist_endpoint_404s_for_unknown(client):
     assert client.post("/band/999/allowlist").status_code == 404
+
+
+def test_allowlist_endpoint_400_for_unflagged(client):
+    band_id = _create(client).json()["id"]
+    assert client.post(f"/band/{band_id}/allowlist").status_code == 400

@@ -63,8 +63,9 @@ export default async function NeedsReviewPage({ searchParams }: PageProps) {
         <div className="flex flex-col gap-1">
           <h1 className="text-3xl font-bold">Needs review</h1>
           <p className="text-sm text-muted-foreground">
-            Bands the seed auto-flagged as likely off-genre. These are hidden from the public
-            listing until you decide: <strong>Allowlist</strong> to vouch for the band (clears the
+            Bands the seed auto-flagged as likely off-genre. These are removed from browse, genre
+            facets, and similar-bands until you decide; their detail page stays reachable by direct
+            link so you can review it. <strong>Allowlist</strong> to vouch for the band (clears the
             flag, sticky across re-seeds), or delete it (records the MBID in the blacklist so the
             seed won&rsquo;t bring it back). Ranked by lowest seed-share first.
           </p>

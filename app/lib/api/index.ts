@@ -4,6 +4,7 @@ export {
   listGenres,
   listCountries,
   listNeedsReview,
+  allowlistBand,
   getBand,
   getSimilarBands,
   createBand,

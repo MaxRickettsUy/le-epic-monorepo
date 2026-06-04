@@ -30,6 +30,7 @@ from app.genres import CURATED_GENRES, slug_for_tag
 from app.models import Album, Band, BandBlacklist, BandGenre, BandMember, Genre, Member
 from app.settings import settings
 from seed.blacklist import apply_blacklist
+from seed.genre_allowlist import core_votes, load_allowlist
 from seed.outliers import summarize_tags
 
 logger = logging.getLogger("seed.mb_dump")
@@ -141,6 +142,7 @@ def run_seed(mb_engine: Engine, app_session: Session, *, tag: str | None = None)
     # Apply the checked-in blacklist first so the table is at least as broad as
     # the source of truth before we read it back to filter artist rows.
     apply_blacklist(app_session)
+    allowlist = load_allowlist()
 
     with mb_engine.connect() as mb:
         # --- Genres (curated vocabulary) --------------------------------
@@ -324,6 +326,21 @@ def run_seed(mb_engine: Engine, app_session: Session, *, tag: str | None = None)
             band.seed_votes = seed_votes
             band.total_tag_votes = total
             band.seed_share = (seed_votes / total) if total else None
+            # Split rule: only flag when MB users *did* tag the band but with
+            # nothing in the core allowlist *besides the seed tag itself*. The
+            # seed tag is excluded because every seeded band has it by
+            # construction — counting it would make `core_votes == 0`
+            # unreachable. Bands with no MB tags at all (total == 0) stay
+            # unflagged — "no signal" gets a different review surface, not an
+            # off-genre verdict.
+            # Sticky: once a curator has allowlisted a band, never re-flag it
+            # here. The seed still refreshes the raw signal columns above so
+            # the audit data stays current, but the verdict belongs to the
+            # human.
+            if band.allowlisted_at is None:
+                band.auto_flagged = (
+                    total > 0 and core_votes(tags, allowlist, exclude={tag}) == 0
+                )
             # Snapshot the full tag list (votes desc) so curators can audit the
             # raw signal without the MB dump on hand. Empty list (not null) when
             # MB has no tags, so the UI can distinguish "seeded, no tags" from

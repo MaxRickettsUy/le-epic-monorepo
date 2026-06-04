@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { allowlistBandAction } from "@/app/actions";
 import { listNeedsReview } from "@/lib/api";
 import { Header } from "@/components/ui/header";
 import { Badge } from "@/components/ui/badge";
@@ -62,9 +63,11 @@ export default async function NeedsReviewPage({ searchParams }: PageProps) {
         <div className="flex flex-col gap-1">
           <h1 className="text-3xl font-bold">Needs review</h1>
           <p className="text-sm text-muted-foreground">
-            Top 50 catalogue bands ranked by how weakly their MusicBrainz tags back the
-            &ldquo;hardcore punk&rdquo; seed tag. Lowest seed-share first. Bands with no MB tag
-            votes at all sink to the bottom — there&rsquo;s no signal to argue with.
+            Bands the seed auto-flagged as likely off-genre. These are removed from browse, genre
+            facets, and similar-bands until you decide; their detail page stays reachable by direct
+            link so you can review it. <strong>Allowlist</strong> to vouch for the band (clears the
+            flag, sticky across re-seeds), or delete it (records the MBID in the blacklist so the
+            seed won&rsquo;t bring it back). Ranked by lowest seed-share first.
           </p>
         </div>
 
@@ -73,7 +76,7 @@ export default async function NeedsReviewPage({ searchParams }: PageProps) {
             href={includeResolved ? "?" : "?include_resolved=true"}
             className="underline hover:no-underline"
           >
-            {includeResolved ? "Hide resolved bands" : "Show resolved bands too"}
+            {includeResolved ? "Hide allowlisted" : "Show allowlisted too"}
           </Link>
           <span className="text-muted-foreground">{bands.length} shown</span>
         </div>
@@ -87,7 +90,7 @@ export default async function NeedsReviewPage({ searchParams }: PageProps) {
               <TableHead>MB tags (top {MAX_INLINE_TAGS})</TableHead>
               <TableHead>Seed share</TableHead>
               <TableHead>Votes</TableHead>
-              <TableHead>Reviewed?</TableHead>
+              <TableHead>Allowlisted?</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
@@ -128,16 +131,29 @@ export default async function NeedsReviewPage({ searchParams }: PageProps) {
                   {band.seed_votes ?? 0}/{band.total_tag_votes ?? 0}
                 </TableCell>
                 <TableCell>
-                  {band.inclusion_reason ? (
-                    <Badge variant="secondary">Reviewed</Badge>
+                  {band.allowlisted_at ? (
+                    <Badge variant="secondary">Allowlisted</Badge>
                   ) : (
                     <span className="text-muted-foreground">—</span>
                   )}
                 </TableCell>
                 <TableCell className="text-right">
-                  <Link href={`/edit/band/${band.id}`} className="underline hover:no-underline">
-                    Edit
-                  </Link>
+                  <div className="flex justify-end gap-3">
+                    {!band.allowlisted_at && (
+                      <form action={allowlistBandAction.bind(null, band.id)}>
+                        <button
+                          type="submit"
+                          className="underline hover:no-underline"
+                          title="Clear the auto-flag and mark this band as vouched-for"
+                        >
+                          Allowlist
+                        </button>
+                      </form>
+                    )}
+                    <Link href={`/edit/band/${band.id}`} className="underline hover:no-underline">
+                      Edit
+                    </Link>
+                  </div>
                 </TableCell>
               </TableRow>
             ))}

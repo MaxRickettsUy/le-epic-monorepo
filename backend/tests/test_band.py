@@ -261,3 +261,94 @@ def test_similar_counts_shared_genres(client, db):
     assert similar[other_id]["shared_genres"] == 2
     # 2 shared genres(3 each) + same country(1) = 7
     assert similar[other_id]["score"] == 7
+
+
+# -------- auto-flag / allowlist review flow --------
+
+
+def _flag(db, band_id):
+    """Mark a band as auto-flagged (simulates what seed.mb_dump does)."""
+    from app.models import Band
+
+    db.query(Band).filter(Band.id == band_id).update({"auto_flagged": True})
+    db.commit()
+
+
+def test_list_hides_auto_flagged_bands(client, db):
+    keep = _create(client, name="Keep").json()["id"]
+    flagged = _create(client, name="Flagged").json()["id"]
+    _flag(db, flagged)
+
+    names = [b["name"] for b in client.get("/band/").json()["bands"]]
+    assert names == ["Keep"]
+    # Detail still resolves so the review queue can deep-link.
+    assert client.get(f"/band/{flagged}").status_code == 200
+
+
+def test_countries_excludes_flagged(client, db):
+    _create(client, name="Visible", country="United States")
+    flagged = _create(client, name="Hidden", country="Sweden").json()["id"]
+    _flag(db, flagged)
+
+    countries = [r["country"] for r in client.get("/band/countries").json()]
+    assert "United States" in countries
+    assert "Sweden" not in countries
+
+
+def test_similar_excludes_flagged(client, db):
+    base = _create(client, name="Base").json()["id"]
+    other = _create(client, name="Other").json()["id"]  # same country, would score
+    flagged = _create(client, name="Flagged").json()["id"]
+    _flag(db, flagged)
+
+    ids = [b["id"] for b in client.get(f"/band/{base}/similar").json()]
+    assert other in ids
+    assert flagged not in ids
+
+
+def test_needs_review_lists_only_unresolved_flagged(client, db):
+    from datetime import UTC, datetime
+
+    from app.models import Band
+
+    a = _create(client, name="ToReview").json()["id"]
+    b = _create(client, name="AlreadyAllowlisted").json()["id"]
+    _create(client, name="Unflagged")
+    _flag(db, a)
+    _flag(db, b)
+    db.query(Band).filter(Band.id == b).update(
+        {"allowlisted_at": datetime.now(UTC), "auto_flagged": False}
+    )
+    db.commit()
+
+    queue = client.get("/band/needs-review").json()
+    assert [r["name"] for r in queue] == ["ToReview"]
+
+    widened = client.get("/band/needs-review?include_resolved=true").json()
+    assert {"ToReview", "AlreadyAllowlisted"}.issubset({r["name"] for r in widened})
+
+
+def test_allowlist_endpoint_clears_flag_and_stamps(client, db):
+    from app.models import Band
+
+    band_id = _create(client).json()["id"]
+    _flag(db, band_id)
+
+    res = client.post(f"/band/{band_id}/allowlist")
+    assert res.status_code == 200
+
+    db.expire_all()
+    band = db.get(Band, band_id)
+    assert band.auto_flagged is False
+    assert band.allowlisted_at is not None
+    # Now visible to the public listing.
+    assert [b["name"] for b in client.get("/band/").json()["bands"]] == ["Minor Threat"]
+
+
+def test_allowlist_endpoint_404s_for_unknown(client):
+    assert client.post("/band/999/allowlist").status_code == 404
+
+
+def test_allowlist_endpoint_400_for_unflagged(client):
+    band_id = _create(client).json()["id"]
+    assert client.post(f"/band/{band_id}/allowlist").status_code == 400

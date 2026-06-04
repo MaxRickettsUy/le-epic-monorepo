@@ -62,7 +62,7 @@ export default async function SearchPage({ searchParams }: PageProps) {
                   >
                     <span className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
                       <span className="font-medium">{band.name}</span>
-                      <GenreBadges genres={band.genres} />
+                      <GenreBadges genres={band.genres} asLinks={false} />
                     </span>
                     <span className="truncate text-sm text-muted-foreground">
                       {band.location || band.country}

@@ -182,6 +182,27 @@ def test_seed_ignores_non_positive_vote_tags(mb_engine, app_session):
     ), "Bathory should not enter scope on a refuted (count=-1) hardcore-punk tag"
 
 
+def test_seed_sets_auto_flagged_from_allowlist(mb_engine, app_session, tmp_path, monkeypatch):
+    """`auto_flagged` is True iff the band has MB tag votes but none in `core`.
+
+    Uses a narrow custom allowlist (only `d-beat` is core) so the existing
+    fixture exercises both branches: Discharge has d-beat → unflagged;
+    Minor Threat and GauZe lack d-beat → flagged.
+    """
+    allowlist_file = tmp_path / "genre_allowlist.json"
+    allowlist_file.write_text('{"core": ["d-beat"], "ignore": []}')
+    import seed.genre_allowlist as al
+
+    monkeypatch.setattr(al, "ALLOWLIST_PATH", allowlist_file)
+
+    run_seed(mb_engine, app_session, tag="hardcore punk")
+
+    bands = {b.name: b for b in app_session.query(Band).all()}
+    assert bands["Discharge"].auto_flagged is False  # has d-beat:9
+    assert bands["Minor Threat"].auto_flagged is True  # only hardcore-punk + youth-crew + rock
+    assert bands["GauZe"].auto_flagged is True  # only the seed tag, which isn't core here
+
+
 def test_seed_purges_pre_fix_non_positive_genre_links(mb_engine, app_session):
     """One-shot heal of bad genre links the pre-fix seed wrote.
 
@@ -323,3 +344,30 @@ def test_band_art_only_fills_missing_fields(mb_engine, app_session):
     assert bands["Minor Threat"].logo == band_art.commons_url("Q123-logo.svg")
     assert bands["Discharge"].band_picture == band_art.commons_url("Q456-first.jpg")
     assert bands["Discharge"].logo == band_art.commons_url("Q456-logo.svg")
+
+
+def test_seed_respects_allowlisted_sticky_flag(mb_engine, app_session, tmp_path, monkeypatch):
+    """A band a curator allowlisted is never re-flagged, even if its tags say off-genre."""
+    from datetime import UTC, datetime
+
+    allowlist_file = tmp_path / "genre_allowlist.json"
+    allowlist_file.write_text('{"core": ["d-beat"], "ignore": []}')
+    import seed.genre_allowlist as al
+
+    monkeypatch.setattr(al, "ALLOWLIST_PATH", allowlist_file)
+
+    # First run — Minor Threat is flagged as expected.
+    run_seed(mb_engine, app_session, tag="hardcore punk")
+    mt = app_session.query(Band).filter(Band.name == "Minor Threat").one()
+    assert mt.auto_flagged is True
+
+    # Curator allowlists it.
+    mt.auto_flagged = False
+    mt.allowlisted_at = datetime.now(UTC)
+    app_session.commit()
+
+    # Re-seed: verdict stays the curator's, raw signal columns still refresh.
+    run_seed(mb_engine, app_session, tag="hardcore punk")
+    app_session.expire(mt)
+    assert mt.auto_flagged is False
+    assert mt.allowlisted_at is not None

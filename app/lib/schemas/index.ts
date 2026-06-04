@@ -110,6 +110,20 @@ export const bandListItemSchema = bandBaseSchema;
  */
 export const needsReviewItemSchema = bandListItemSchema.extend({
   mb_tags: z.array(mbTagSchema).nullish(),
+  /**
+   * True when the seed's genre allowlist found MB tags on this band but none
+   * landed in the curated `core` set (see backend `seed/genre_allowlist`).
+   * Null on bands seeded before the column existed. Drives the off-genre
+   * badge on `/admin/needs-review` and hides the band from the public
+   * listing/facets/similar until a curator allowlists or deletes it.
+   */
+  auto_flagged: z.boolean().nullish(),
+  /**
+   * ISO timestamp set when a curator allowlisted this band. Sticky — the
+   * seed skips re-flagging when set, so the decision survives re-seeds.
+   * Null = never reviewed.
+   */
+  allowlisted_at: z.string().nullish(),
 });
 
 /** Band detail response (`GET /band/{id}`). */

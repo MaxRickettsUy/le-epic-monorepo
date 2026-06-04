@@ -307,8 +307,9 @@ def test_similar_excludes_flagged(client, db):
 
 
 def test_needs_review_lists_only_unresolved_flagged(client, db):
+    from datetime import UTC, datetime
+
     from app.models import Band
-    from datetime import datetime, timezone
 
     a = _create(client, name="ToReview").json()["id"]
     b = _create(client, name="AlreadyAllowlisted").json()["id"]
@@ -316,7 +317,7 @@ def test_needs_review_lists_only_unresolved_flagged(client, db):
     _flag(db, a)
     _flag(db, b)
     db.query(Band).filter(Band.id == b).update(
-        {"allowlisted_at": datetime.now(timezone.utc), "auto_flagged": False}
+        {"allowlisted_at": datetime.now(UTC), "auto_flagged": False}
     )
     db.commit()
 

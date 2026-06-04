@@ -294,6 +294,8 @@ def allowlist(id: int, db: Session = Depends(get_db)):
     band = db.get(Band, id)
     if band is None:
         raise HTTPException(status_code=404, detail="Band not found")
+    if not band.auto_flagged:
+        raise HTTPException(status_code=400, detail="Band is not awaiting review")
     band.auto_flagged = False
     band.allowlisted_at = sa.func.now()
     db.commit()

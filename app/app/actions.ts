@@ -32,6 +32,7 @@ export async function allowlistBandAction(id: number) {
   revalidatePath("/");
   revalidatePath("/admin/needs-review");
   revalidatePath(`/band/${id}`);
+  redirect("/admin/needs-review");
 }
 
 export async function deleteBandAction(id: number, options: DeleteBandOptions = {}) {

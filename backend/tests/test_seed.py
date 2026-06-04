@@ -348,7 +348,7 @@ def test_band_art_only_fills_missing_fields(mb_engine, app_session):
 
 def test_seed_respects_allowlisted_sticky_flag(mb_engine, app_session, tmp_path, monkeypatch):
     """A band a curator allowlisted is never re-flagged, even if its tags say off-genre."""
-    from datetime import datetime, timezone
+    from datetime import UTC, datetime
 
     allowlist_file = tmp_path / "genre_allowlist.json"
     allowlist_file.write_text('{"core": ["d-beat"], "ignore": []}')
@@ -363,7 +363,7 @@ def test_seed_respects_allowlisted_sticky_flag(mb_engine, app_session, tmp_path,
 
     # Curator allowlists it.
     mt.auto_flagged = False
-    mt.allowlisted_at = datetime.now(timezone.utc)
+    mt.allowlisted_at = datetime.now(UTC)
     app_session.commit()
 
     # Re-seed: verdict stays the curator's, raw signal columns still refresh.

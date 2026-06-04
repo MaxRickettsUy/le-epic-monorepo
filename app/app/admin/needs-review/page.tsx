@@ -90,7 +90,7 @@ export default async function NeedsReviewPage({ searchParams }: PageProps) {
               <TableHead>MB tags (top {MAX_INLINE_TAGS})</TableHead>
               <TableHead>Seed share</TableHead>
               <TableHead>Votes</TableHead>
-              <TableHead>Reviewed?</TableHead>
+              <TableHead>Allowlisted?</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>

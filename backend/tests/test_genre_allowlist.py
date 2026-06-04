@@ -6,7 +6,7 @@ import json
 
 import pytest
 
-from seed.genre_allowlist import core_votes, load_allowlist
+from seed.genre_allowlist import core_votes, decide_auto_flag, load_allowlist
 
 
 def test_load_allowlist_lowercases_tag_names(tmp_path):
@@ -84,3 +84,46 @@ def test_core_votes_excludes_seed_tag(tmp_path):
     assert core_votes(tags, al, exclude={"Hardcore Punk"}) == 3
     # A band tagged only with the seed tag has zero corroborating evidence.
     assert core_votes([("hardcore punk", 5)], al, exclude={"hardcore punk"}) == 0
+
+
+def _allowlist(tmp_path):
+    path = tmp_path / "al.json"
+    path.write_text(json.dumps({"core": ["hardcore punk", "d-beat"], "ignore": []}))
+    return load_allowlist(path)
+
+
+def test_decide_auto_flag_no_mb_tags_is_unflagged(tmp_path):
+    # No MB signal at all → "no signal", not an off-genre verdict.
+    al = _allowlist(tmp_path)
+    assert decide_auto_flag([], al, seed_tag="hardcore punk") is False
+
+
+def test_decide_auto_flag_only_seed_tag_is_flagged(tmp_path):
+    # MB tagged it, but the only signal is the seed tag itself → off-genre.
+    al = _allowlist(tmp_path)
+    assert decide_auto_flag([("hardcore punk", 5)], al, seed_tag="hardcore punk") is True
+
+
+def test_decide_auto_flag_core_corroboration_is_unflagged(tmp_path):
+    # A core tag beyond the seed tag corroborates scope.
+    al = _allowlist(tmp_path)
+    tags = [("hardcore punk", 5), ("d-beat", 3)]
+    assert decide_auto_flag(tags, al, seed_tag="hardcore punk") is False
+
+
+def test_decide_auto_flag_enrichment_rescues_off_genre_band(tmp_path):
+    # MB only has the seed tag (would be flagged), but enrichment placed the
+    # band in a curated genre → rescued. This is the 2010s-coverage case.
+    al = _allowlist(tmp_path)
+    tags = [("hardcore punk", 5)]
+    assert (
+        decide_auto_flag(tags, al, seed_tag="hardcore punk", has_enrichment_core=True)
+        is False
+    )
+
+
+def test_decide_auto_flag_enrichment_does_not_rescue_no_signal(tmp_path):
+    # has_enrichment_core is moot when MB never tagged the band — still unflagged
+    # via the no-signal branch, not the enrichment branch.
+    al = _allowlist(tmp_path)
+    assert decide_auto_flag([], al, seed_tag="hardcore punk", has_enrichment_core=True) is False

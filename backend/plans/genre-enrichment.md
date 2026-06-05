@@ -31,7 +31,19 @@ The model is ready to receive enrichment data; this shipped on
 - Tests: unit coverage for `decide_auto_flag` (all branches) + an integration test
   proving a `lastfm` link rescues a band across re-seeds.
 
-## Phase 1 — Last.fm tag fetcher (NEXT)
+## Phase 1 — Last.fm tag fetcher (DONE)
+
+Shipped: `app/services/lastfm.py` (HTTP boundary), `seed/lastfm_tags.py`
+(idempotent enrichment seeder, re-flags in-pass via `decide_auto_flag`),
+`LASTFM_API_KEY` / `LASTFM_API_URL` in `app/settings.py`, tests in
+`tests/test_seed_lastfm.py`.
+
+Decisions locked at Phase 1 (see Open questions below):
+- **vote_count scale:** `round(weight / 20)` → 0–5 (option a).
+- **Weight floor:** ≥ 10.
+- **Re-flag timing:** in-pass via `decide_auto_flag(..., has_enrichment_core=True)`.
+- **Enrichment-only genres on band page:** yes (no read-path filter).
+
 
 A new standalone seeder, run *after* `seed.mb_dump` (it depends on bands already
 existing with MBIDs):

@@ -101,6 +101,9 @@ Seed scripts are framework-agnostic, so this landed cleanly after the FastAPI sw
 
 - Cron the MB dump re-import weekly (the dump cycle); diff against existing rows by MBID, only update changed
 - Use the web API only for: brand-new releases since last dump, cover art, user-initiated band adds
+- **Genre enrichment** — see `plans/genre-enrichment.md`. Layered on top of the
+  MB dump (`seed.lastfm_tags`); MB stays the entity backbone, Last.fm fills in
+  the thin tag coverage for newer bands.
 
 ## Open questions still worth answering
 

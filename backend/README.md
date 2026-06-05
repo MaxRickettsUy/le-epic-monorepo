@@ -27,7 +27,7 @@ release-groups, and band membership in a few SQL queries.
 
    ```bash
    docker compose run --rm --entrypoint bash hc_archives_back -lc \
-     "python -m seed.mb_dump && python -m seed.cover_art && python -m seed.band_art"
+     "python -m seed.mb_dump && python -m seed.cover_art && python -m seed.band_art && python -m seed.lastfm_tags"
    ```
 
    - `seed.mb_dump` upserts bands/albums/members by MBID (idempotent — safe to
@@ -38,6 +38,10 @@ release-groups, and band membership in a few SQL queries.
      (`P18` / `P154`) for bands that link to a Wikidata QID via MB. Stores stable
      `commons.wikimedia.org/wiki/Special:FilePath/...` URLs. Idempotent: only
      fills fields that are still null.
+   - `seed.lastfm_tags` enriches curated genre coverage from Last.fm for bands
+     MB tagged thinly (see `plans/genre-enrichment.md`). Requires
+     `LASTFM_API_KEY` in the environment; no-ops with a log line if unset.
+     Idempotent; writes `BandGenre` rows tagged `source="lastfm"`.
 
 ## Seed lightweight dev data
 

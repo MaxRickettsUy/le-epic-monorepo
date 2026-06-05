@@ -30,7 +30,7 @@ from app.genres import CURATED_GENRES, slug_for_tag
 from app.models import Album, Band, BandBlacklist, BandGenre, BandMember, Genre, Member
 from app.settings import settings
 from seed.blacklist import apply_blacklist
-from seed.genre_allowlist import core_votes, load_allowlist
+from seed.genre_allowlist import decide_auto_flag, load_allowlist
 from seed.outliers import summarize_tags
 
 logger = logging.getLogger("seed.mb_dump")
@@ -306,7 +306,7 @@ def run_seed(mb_engine: Engine, app_session: Session, *, tag: str | None = None)
             votes = row["votes"] or 0
             link = existing_genre_links.get((band.id, genre.id))
             if link is None:
-                link = BandGenre(band=band, genre=genre, vote_count=votes)
+                link = BandGenre(band=band, genre=genre, vote_count=votes, source="mb")
                 app_session.add(link)
                 existing_genre_links[(band.id, genre.id)] = link
                 stats.genres_linked += 1
@@ -320,26 +320,37 @@ def run_seed(mb_engine: Engine, app_session: Session, *, tag: str | None = None)
         # Persist (seed_votes, total_tag_votes, seed_share) onto each band
         # so /band/needs-review can rank candidate outliers without touching
         # the MB dump. Bands with no tag rows get zeros / a null share.
+        #
+        # Bands an enrichment provider (e.g. seed.lastfm_tags) has linked to a
+        # curated genre carry a non-"mb" BandGenre row. Those links survive an
+        # MB re-seed (we only purge non-positive-vote rows above), so reading
+        # them here keeps an enriched band off the off-genre flag on every
+        # subsequent run — the enrichment verdict isn't clobbered by re-seeding.
+        enriched_band_ids = {
+            band_id
+            for (band_id,) in app_session.query(BandGenre.band_id)
+            .filter(BandGenre.source != "mb")
+            .distinct()
+        }
         for mb_artist_id, band in band_by_mb_id.items():
             tags = tags_by_artist.get(mb_artist_id, [])
             seed_votes, total, _other = summarize_tags(tags, tag)
             band.seed_votes = seed_votes
             band.total_tag_votes = total
             band.seed_share = (seed_votes / total) if total else None
-            # Split rule: only flag when MB users *did* tag the band but with
-            # nothing in the core allowlist *besides the seed tag itself*. The
-            # seed tag is excluded because every seeded band has it by
-            # construction — counting it would make `core_votes == 0`
-            # unreachable. Bands with no MB tags at all (total == 0) stay
-            # unflagged — "no signal" gets a different review surface, not an
-            # off-genre verdict.
+            # Off-genre verdict (see decide_auto_flag): flagged only when MB
+            # tagged the band but nothing — MB core votes or an enrichment link
+            # — corroborates the catalogue's scope.
             # Sticky: once a curator has allowlisted a band, never re-flag it
             # here. The seed still refreshes the raw signal columns above so
             # the audit data stays current, but the verdict belongs to the
             # human.
             if band.allowlisted_at is None:
-                band.auto_flagged = (
-                    total > 0 and core_votes(tags, allowlist, exclude={tag}) == 0
+                band.auto_flagged = decide_auto_flag(
+                    tags,
+                    allowlist,
+                    seed_tag=tag,
+                    has_enrichment_core=band.id in enriched_band_ids,
                 )
             # Snapshot the full tag list (votes desc) so curators can audit the
             # raw signal without the MB dump on hand. Empty list (not null) when

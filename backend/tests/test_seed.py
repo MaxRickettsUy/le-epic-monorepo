@@ -203,6 +203,50 @@ def test_seed_sets_auto_flagged_from_allowlist(mb_engine, app_session, tmp_path,
     assert bands["GauZe"].auto_flagged is True  # only the seed tag, which isn't core here
 
 
+def test_seed_enrichment_link_rescues_band_from_auto_flag(
+    mb_engine, app_session, tmp_path, monkeypatch
+):
+    """A non-"mb" BandGenre link keeps an otherwise off-genre band unflagged.
+
+    With only `d-beat` core, Minor Threat is flagged on the first pass. Adding a
+    `lastfm`-sourced curated link (the enrichment seeder's output) and re-seeding
+    must clear the flag — and the verdict stays cleared on every later run,
+    because the enrichment link survives the MB re-seed.
+    """
+    allowlist_file = tmp_path / "genre_allowlist.json"
+    allowlist_file.write_text('{"core": ["d-beat"], "ignore": []}')
+    import seed.genre_allowlist as al
+
+    monkeypatch.setattr(al, "ALLOWLIST_PATH", allowlist_file)
+
+    run_seed(mb_engine, app_session, tag="hardcore punk")
+    mt = app_session.query(Band).filter(Band.name == "Minor Threat").one()
+    assert mt.auto_flagged is True  # MB only has the seed tag in `core`
+
+    # Enrichment provider links Minor Threat to a curated genre.
+    metalcore = app_session.query(Genre).filter(Genre.slug == "metalcore").one()
+    app_session.add(
+        BandGenre(band=mt, genre=metalcore, vote_count=80, source="lastfm")
+    )
+    app_session.commit()
+
+    run_seed(mb_engine, app_session, tag="hardcore punk")
+    app_session.expire(mt)
+    assert mt.auto_flagged is False  # rescued by the enrichment link
+
+    # Stable across a further re-seed: the lastfm link isn't purged, so the
+    # band doesn't bounce back to flagged.
+    run_seed(mb_engine, app_session, tag="hardcore punk")
+    app_session.expire(mt)
+    assert mt.auto_flagged is False
+    assert (
+        app_session.query(BandGenre)
+        .filter(BandGenre.band_id == mt.id, BandGenre.source == "lastfm")
+        .count()
+        == 1
+    )
+
+
 def test_seed_purges_pre_fix_non_positive_genre_links(mb_engine, app_session):
     """One-shot heal of bad genre links the pre-fix seed wrote.
 

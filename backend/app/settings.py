@@ -26,5 +26,10 @@ class Settings(BaseSettings):
     # No default: deployments must set MUSICBRAINZ_CONTACT_EMAIL.
     musicbrainz_contact_email: str = ""
 
+    # Last.fm enrichment (seed.lastfm_tags). The seeder no-ops with a log line
+    # if the key is unset, so leaving these blank is safe for local dev.
+    lastfm_api_key: str | None = None
+    lastfm_api_url: str = "https://ws.audioscrobbler.com/2.0/"
+
 
 settings = Settings()

@@ -63,3 +63,35 @@ def core_votes(
         for name, votes in tags
         if votes > 0 and name.lower() in allowlist.core and name.lower() not in skip
     )
+
+
+def decide_auto_flag(
+    tags: list[tuple[str, int]],
+    allowlist: GenreAllowlist,
+    *,
+    seed_tag: str,
+    has_enrichment_core: bool = False,
+) -> bool:
+    """Decide whether a band looks off-genre and should be auto-flagged.
+
+    Flag iff MB tagged the band (so we have *some* signal to judge) but none of
+    that signal corroborates the catalogue's scope. A band is in-scope — and so
+    NOT flagged — when any of:
+
+    - MB never tagged it at all (``total == 0``): "no signal" is a different
+      review surface, not an off-genre verdict.
+    - It carries core MB tag votes beyond the seed tag itself.
+    - An enrichment provider has placed it in a curated genre
+      (``has_enrichment_core``): enrichment only ever links in-scope genres, so
+      e.g. a 2010s band MusicBrainz never tagged "hardcore punk" but Last.fm
+      tags "metalcore" is rescued rather than flagged.
+
+    The seed tag is excluded from the core count because every seeded band has
+    it by construction — counting it would make the off-genre branch unreachable.
+    """
+    total = sum(v for _, v in tags)
+    if total == 0:
+        return False
+    if has_enrichment_core:
+        return False
+    return core_votes(tags, allowlist, exclude={seed_tag}) == 0

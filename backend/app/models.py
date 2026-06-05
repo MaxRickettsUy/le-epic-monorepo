@@ -175,7 +175,17 @@ class BandGenre(TimestampMixin, Base):
         sa.ForeignKey("genre.id", ondelete="CASCADE"), primary_key=True
     )
     # MusicBrainz tag vote count; lets us rank a band's primary genre / facets.
+    # For enrichment sources (see `source`) this is the provider weight normalized
+    # onto the same scale, so MB and enrichment links sort together.
     vote_count: so.Mapped[int] = so.mapped_column(sa.Integer(), default=0, server_default="0")
+    # Where this link came from: "mb" (MusicBrainz artist_tag, the default) or an
+    # enrichment provider like "lastfm". Enrichment only ever links curated
+    # (in-scope) genres, so a non-"mb" link is positive evidence a band belongs in
+    # the catalogue — seed.mb_dump reads this to keep enriched bands off the
+    # off-genre auto-flag even when MB itself never tagged them in-scope.
+    source: so.Mapped[str] = so.mapped_column(
+        sa.String(20), default="mb", server_default="mb", nullable=False
+    )
 
     band: so.Mapped["Band"] = so.relationship(back_populates="genres")
     genre: so.Mapped["Genre"] = so.relationship(back_populates="band_links")

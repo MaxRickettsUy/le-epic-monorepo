@@ -11,6 +11,7 @@ import pytest
 
 from app.genres import CURATED_GENRES
 from app.models import Band, BandGenre, Genre
+from app.services.lastfm import LastfmError
 from seed.lastfm_tags import WEIGHT_FLOOR, bucket_weight, enrich_lastfm_tags
 
 
@@ -206,8 +207,69 @@ def test_no_api_key_no_ops(seeded_session, monkeypatch):
     assert seeded_session.query(BandGenre).count() == 0
 
 
+def test_fetcher_errors_counted_and_dont_halt_pass(seeded_session):
+    """A LastfmError on one band must be counted, and other bands keep going."""
+
+    def fetch(mbid):
+        if mbid == "mt-gid":
+            raise LastfmError("fetch failed: simulated network error")
+        return [("d-beat", 80)]
+
+    stats = enrich_lastfm_tags(seeded_session, fetch_top_tags=fetch, sleep_seconds=0)
+
+    assert stats.bands_checked == 2  # both MBID-bearing bands attempted
+    assert len(stats.errors) == 1
+    assert "mt-gid" in stats.errors[0]
+    # Discharge still got its link despite Minor Threat failing.
+    discharge_links = (
+        seeded_session.query(BandGenre)
+        .join(Band)
+        .filter(Band.name == "Discharge", BandGenre.source == "lastfm")
+        .all()
+    )
+    assert len(discharge_links) == 1
+    assert discharge_links[0].genre.slug == "d-beat"
+
+
 def test_bucket_weight_floor():
     assert bucket_weight(10) == 1  # just clears the floor → min bucket
     assert bucket_weight(20) == 1
     assert bucket_weight(30) == 2
     assert bucket_weight(100) == 5
+
+
+# --- service-level (app.services.lastfm.top_tags) ------------------------------
+
+
+def test_top_tags_raises_on_network_error():
+    """URLError from the underlying fetch must surface as a LastfmError."""
+    import urllib.error
+
+    from app.services.lastfm import top_tags
+
+    def boom(_url):
+        raise urllib.error.URLError("network unreachable")
+
+    with pytest.raises(LastfmError, match="fetch failed"):
+        top_tags("any-mbid", api_key="fake", fetch=boom)
+
+
+def test_top_tags_returns_empty_on_artist_not_found():
+    """Last.fm error code 6 is a clean 'no such artist' — not an error."""
+    from app.services.lastfm import top_tags
+
+    def not_found(_url):
+        return {"error": 6, "message": "The artist you supplied could not be found"}
+
+    assert top_tags("any-mbid", api_key="fake", fetch=not_found) == []
+
+
+def test_top_tags_raises_on_other_lastfm_errors():
+    """Non-6 Last.fm error payloads (rate limit, auth, etc.) must raise."""
+    from app.services.lastfm import top_tags
+
+    def rate_limited(_url):
+        return {"error": 29, "message": "Rate limit exceeded"}
+
+    with pytest.raises(LastfmError, match="error 29"):
+        top_tags("any-mbid", api_key="fake", fetch=rate_limited)

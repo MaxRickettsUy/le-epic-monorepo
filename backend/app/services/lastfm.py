@@ -9,15 +9,12 @@ seeder can be unit-tested with a fake `fetch`.
 from __future__ import annotations
 
 import json
-import logging
 import urllib.error
 import urllib.parse
 import urllib.request
 from collections.abc import Callable
 
 from app.settings import settings
-
-logger = logging.getLogger("services.lastfm")
 
 USER_AGENT = "Hardchives/0.1"
 
@@ -44,9 +41,12 @@ def top_tags(
 ) -> list[tuple[str, int]]:
     """Return Last.fm's top tags for an artist as `(name, weight)` pairs.
 
-    Weights are Last.fm's 0–100 scores. Returns `[]` on a missing artist or a
-    transient network error (the seeder logs and moves on rather than failing
-    a long enrichment pass for one bad MBID).
+    Weights are Last.fm's 0–100 scores. Returns `[]` when Last.fm explicitly
+    says the artist isn't there (error code 6) or has no tags — those are
+    successful "no data" answers, not failures. Raises `LastfmError` on
+    transient network/parse errors and on other Last.fm error codes, so the
+    seeder can count them in its error stats rather than silently treating
+    them as "no tags".
     """
     key = api_key if api_key is not None else settings.lastfm_api_key
     if not key:
@@ -64,14 +64,14 @@ def top_tags(
     try:
         data = fetch(url)
     except (urllib.error.URLError, json.JSONDecodeError) as e:
-        logger.warning("Last.fm fetch failed for %s: %s", mbid, e)
-        return []
+        raise LastfmError(f"fetch failed: {e}") from e
     # Last.fm error payloads carry a top-level "error" int + "message".
     if isinstance(data, dict) and "error" in data:
-        # Code 6 = "The artist you supplied could not be found" — quiet.
-        if data.get("error") != 6:
-            logger.warning("Last.fm error for %s: %s", mbid, data.get("message"))
-        return []
+        # Code 6 = "The artist you supplied could not be found" — a clean
+        # "no data" answer; don't surface as an error.
+        if data.get("error") == 6:
+            return []
+        raise LastfmError(f"Last.fm error {data.get('error')}: {data.get('message')}")
     tags_node = (data.get("toptags") or {}).get("tag") or []
     out: list[tuple[str, int]] = []
     for t in tags_node:
